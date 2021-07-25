@@ -20,15 +20,18 @@
   -->
 
 <template>
-	<div v-if="!enforceAcceptShares" id="files-sharing-personal-settings" class="section">
+	<div v-if="(!enforceAcceptShares) || allowCustomDirectory" id="files-sharing-personal-settings" class="section">
 		<h2>{{ t('files_sharing', 'Sharing') }}</h2>
-		<p>
+		<p v-if="!enforceAcceptShares">
 			<input id="files-sharing-personal-settings-accept"
 				v-model="accepting"
 				class="checkbox"
 				type="checkbox"
 				@change="toggleEnabled">
 			<label for="files-sharing-personal-settings-accept">{{ t('files_sharing', 'Accept user and group shares by default') }}</label>
+		</p>
+		<p v-if="allowCustomDirectory">
+			<SelectShareFolderDialogue />
 		</p>
 	</div>
 </template>
@@ -37,6 +40,7 @@
 import axios from '@nextcloud/axios'
 import { loadState } from '@nextcloud/initial-state'
 import { generateUrl } from '@nextcloud/router'
+import SelectShareFolderDialogue from './SelectShareFolderDialogue'
 
 export default {
 	name: 'PersonalSettings',
@@ -44,6 +48,7 @@ export default {
 		return {
 			accepting: loadState('files_sharing', 'accept_default'),
 			enforceAcceptShares: loadState('files_sharing', 'enforce_accept'),
+			allowCustomDirectory: loadState('files_sharing', 'allow_custom_share_folder')
 		}
 	},
 	methods: {
@@ -55,6 +60,9 @@ export default {
 				}
 			)
 		},
+	},
+	components: {
+		SelectShareFolderDialogue,
 	},
 }
 </script>

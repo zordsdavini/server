@@ -29,6 +29,7 @@ namespace OCA\Files_Sharing;
 
 use OC\Files\Filesystem;
 use OC\Files\View;
+use OCA\Files_Sharing\AppInfo\Application;
 
 class Helper {
 	public static function registerHooks() {
@@ -63,14 +64,27 @@ class Helper {
 	/**
 	 * get default share folder
 	 *
-	 * @param \OC\Files\View $view
+	 * @param \OC\Files\View|null $view
+	 * @param string|null $userId
 	 * @return string
 	 */
-	public static function getShareFolder($view = null) {
+	public static function getShareFolder(View $view = null, string $userId = null): string {
 		if ($view === null) {
 			$view = Filesystem::getView();
 		}
-		$shareFolder = \OC::$server->getConfig()->getSystemValue('share_folder', '/');
+		$config = \OC::$server->getConfig();
+		$systemDefault = $config->getSystemValue('share_folder', '/');
+		$allowCustomShareFolder = $config->getSystemValueBool('sharing.allow_custom_share_folder', true);
+
+		if ($userId == null) {
+			$shareFolder = $systemDefault;
+		} else {
+			if ( $allowCustomShareFolder ) {
+				$shareFolder = $config->getUserValue($userId, Application::APP_ID, 'share_folder', $systemDefault);
+			} else {
+				$shareFolder = $systemDefault;
+			}
+		}
 		$shareFolder = Filesystem::normalizePath($shareFolder);
 
 		if (!$view->file_exists($shareFolder)) {
@@ -91,8 +105,24 @@ class Helper {
 	 * set default share folder
 	 *
 	 * @param string $shareFolder
+	 * @param string|null $userId
 	 */
-	public static function setShareFolder($shareFolder) {
-		\OC::$server->getConfig()->setSystemValue('share_folder', $shareFolder);
+	public static function setShareFolder(string $shareFolder, string $userId = null) {
+		$config = \OC::$server->getConfig();
+		if ($userId == null) {
+			$config->setSystemValue('share_folder', $shareFolder);
+		} else {
+			$config->setUserValue($userId, Application::APP_ID, 'share_folder', $shareFolder);
+		}
+	}
+
+	/**
+	 * reset default share folder for a user to the system default
+	 *
+	 * @param string $userId
+	 */
+	public static function resetShareFolder(string $userId) {
+		$config = \OC::$server->getConfig();
+		$config->deleteUserValue($userId, Application::APP_ID, 'share_folder');
 	}
 }

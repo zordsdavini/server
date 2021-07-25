@@ -26,6 +26,7 @@ declare(strict_types=1);
 namespace OCA\Files_Sharing\Controller;
 
 use OCA\Files_Sharing\AppInfo\Application;
+use OCA\Files_Sharing\Helper;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IConfig;
@@ -50,6 +51,22 @@ class SettingsController extends Controller {
 	 */
 	public function setDefaultAccept(bool $accept): JSONResponse {
 		$this->config->setUserValue($this->userId, Application::APP_ID, 'default_accept', $accept ? 'yes' : 'no');
+		return new JSONResponse();
+	}
+
+	/**
+	 * @NoAdminRequired
+	 */
+	public function setShareFolder(string $shareFolder): JSONResponse {
+		Helper::setShareFolder($shareFolder, $this->userId);
+		return new JSONResponse();
+	}
+
+	/**
+	 * @NoAdminRequired
+	 */
+	public function resetShareFolder(): JSONResponse {
+		Helper::resetShareFolder($this->userId);
 		return new JSONResponse();
 	}
 }

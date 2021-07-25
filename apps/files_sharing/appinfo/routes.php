@@ -83,6 +83,16 @@ return [
 			'verb' => 'PUT',
 		],
 		[
+			'name' => 'Settings#setShareFolder',
+			'url' => '/settings/shareFolder',
+			'verb' => 'PUT',
+		],
+		[
+			'name' => 'Settings#resetShareFolder',
+			'url' => '/settings/shareFolder',
+			'verb' => 'DELETE',
+		],
+		[
 			'name' => 'Accept#accept',
 			'url' => '/accept/{shareId}',
 			'verb' => 'GET',

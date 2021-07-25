@@ -1221,7 +1221,7 @@ $CONFIG = [
  * For enhanced security it is recommended to configure Redis
  * to require a password. See http://redis.io/topics/security
  * for more information.
- * 
+ *
  * We also support redis SSL/TLS encryption as of version 6.
  * See https://redis.io/topics/encryption for more information.
  */
@@ -1484,6 +1484,11 @@ $CONFIG = [
  * Set to true to enforce that internal shares need to be accepted
  */
 'sharing.force_share_accept' => false,
+
+/**
+ * Set to false to prevent users from setting a custom share_folder
+ */
+'sharing.allow_custom_share_folder' => true,
 
 /**
  * Set to false to stop sending a mail when users receive a share
