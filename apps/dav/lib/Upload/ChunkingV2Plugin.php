@@ -32,6 +32,7 @@ use OCP\Files\Storage\IStorage;
 use OCP\Files\StorageInvalidException;
 use Sabre\DAV\Exception\BadRequest;
 use Sabre\DAV\Exception\NotFound;
+use Sabre\DAV\Exception\PreconditionFailed;
 use Sabre\DAV\Server;
 use Sabre\DAV\ServerPlugin;
 use Sabre\HTTP\RequestInterface;
@@ -122,6 +123,9 @@ class ChunkingV2Plugin extends ServerPlugin {
 		$properties = $this->server->getProperties(dirname($request->getPath()) . '/', [ self::OBJECT_UPLOAD_CHUNKTOKEN, self::OBJECT_UPLOAD_TARGET ]);
 		$targetPath = $properties[self::OBJECT_UPLOAD_TARGET];
 		$uploadId = $properties[self::OBJECT_UPLOAD_CHUNKTOKEN];
+		if (empty($targetPath) || empty($uploadId)) {
+			throw new PreconditionFailed('Missing metadata for chunked upload');
+		}
 		$partId = (int)basename($request->getPath());
 
 		if (!($partId >= 1 && $partId <= 10000)) {
@@ -147,6 +151,9 @@ class ChunkingV2Plugin extends ServerPlugin {
 		$properties = $this->server->getProperties(dirname($sourcePath) . '/', [ self::OBJECT_UPLOAD_CHUNKTOKEN, self::OBJECT_UPLOAD_TARGET ]);
 		$targetPath = $properties[self::OBJECT_UPLOAD_TARGET];
 		$uploadId = $properties[self::OBJECT_UPLOAD_CHUNKTOKEN];
+		if (empty($targetPath) || empty($uploadId)) {
+			throw new PreconditionFailed('Missing metadata for chunked upload');
+		}
 
 		$targetFile = $this->getTargetFile($targetPath);
 
