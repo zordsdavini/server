@@ -22,14 +22,13 @@ declare(strict_types=1);
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
 namespace OCA\Files\Service;
 
 use Closure;
@@ -100,12 +99,15 @@ class OwnershipTransferService {
 		$destinationUid = $destinationUser->getUID();
 		$sourcePath = rtrim($sourceUid . '/files/' . $path, '/');
 
-		// target user has to be ready
-		if ($destinationUser->getLastLogin() === 0 || !$this->encryptionManager->isReadyForUser($destinationUid)) {
+		// If encryption is on we have to ensure the user has logged in before and that all encryption modules are ready
+		if (($this->encryptionManager->isEnabled() && $destinationUser->getLastLogin() === 0)
+			|| !$this->encryptionManager->isReadyForUser($destinationUid)) {
 			throw new TransferOwnershipException("The target user is not ready to accept files. The user has at least to have logged in once.", 2);
 		}
 
 		// setup filesystem
+		// Requesting the user folder will set it up if the user hasn't logged in before
+		\OC::$server->getUserFolder($destinationUser->getUID());
 		Filesystem::initMountPoints($sourceUid);
 		Filesystem::initMountPoints($destinationUid);
 

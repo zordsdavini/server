@@ -27,7 +27,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OCA\DAV\Tests\unit\Connector\Sabre;
 
 use OC\AppFramework\Http\Request;
@@ -1087,7 +1086,7 @@ class FileTest extends TestCase {
 			$userView = \OC\Files\Filesystem::getView();
 		}
 		$files = [];
-		list($storage, $internalPath) = $userView->resolvePath($path);
+		[$storage, $internalPath] = $userView->resolvePath($path);
 		if ($storage instanceof Local) {
 			$realPath = $storage->getSourcePath($internalPath);
 			$dh = opendir($realPath);

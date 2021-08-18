@@ -26,12 +26,15 @@ namespace Test\Collaboration\Collaborators;
 use OC\Collaboration\Collaborators\MailPlugin;
 use OC\Collaboration\Collaborators\SearchResult;
 use OC\Federation\CloudIdManager;
+use OC\KnownUser\KnownUserService;
 use OCP\Collaboration\Collaborators\SearchResultType;
 use OCP\Contacts\IManager;
 use OCP\Federation\ICloudIdManager;
 use OCP\IConfig;
 use OCP\IGroupManager;
+use OCP\IURLGenerator;
 use OCP\IUser;
+use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\Share\IShare;
 use Test\TestCase;
@@ -55,6 +58,9 @@ class MailPluginTest extends TestCase {
 	/** @var  IGroupManager|\PHPUnit\Framework\MockObject\MockObject */
 	protected $groupManager;
 
+	/** @var  KnownUserService|\PHPUnit\Framework\MockObject\MockObject */
+	protected $knownUserService;
+
 	/** @var  IUserSession|\PHPUnit\Framework\MockObject\MockObject */
 	protected $userSession;
 
@@ -64,14 +70,22 @@ class MailPluginTest extends TestCase {
 		$this->config = $this->createMock(IConfig::class);
 		$this->contactsManager = $this->createMock(IManager::class);
 		$this->groupManager = $this->createMock(IGroupManager::class);
+		$this->knownUserService = $this->createMock(KnownUserService::class);
 		$this->userSession = $this->createMock(IUserSession::class);
-		$this->cloudIdManager = new CloudIdManager($this->contactsManager);
+		$this->cloudIdManager = new CloudIdManager($this->contactsManager, $this->createMock(IURLGenerator::class), $this->createMock(IUserManager::class));
 
 		$this->searchResult = new SearchResult();
 	}
 
 	public function instantiatePlugin() {
-		$this->plugin = new MailPlugin($this->contactsManager, $this->cloudIdManager, $this->config, $this->groupManager, $this->userSession);
+		$this->plugin = new MailPlugin(
+			$this->contactsManager,
+			$this->cloudIdManager,
+			$this->config,
+			$this->groupManager,
+			$this->knownUserService,
+			$this->userSession
+		);
 	}
 
 	/**

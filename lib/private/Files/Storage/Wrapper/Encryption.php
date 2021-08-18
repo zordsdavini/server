@@ -7,6 +7,7 @@
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author J0WI <J0WI@users.noreply.github.com>
+ * @author jknockaert <jasper@knockaert.nl>
  * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
@@ -32,7 +33,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\Files\Storage\Wrapper;
 
 use OC\Encryption\Exceptions\ModuleDoesNotExistsException;
@@ -192,10 +192,6 @@ class Encryption extends Wrapper {
 		return $data;
 	}
 
-	/**
-	 * @param string $path
-	 * @return array
-	 */
 	public function getMetaData($path) {
 		$data = $this->storage->getMetaData($path);
 		if (is_null($data)) {
@@ -929,21 +925,20 @@ class Encryption extends Wrapper {
 			$path = $realFile;
 		}
 
-		$firstBlock = $this->readFirstBlock($path);
-		$result = $this->parseRawHeader($firstBlock);
+		$result = [];
+		
+		// first check if it is an encrypted file at all
+		// We would do query to filecache only if we know that entry in filecache exists
+		
+		$info = $this->getCache()->get($path);
+		if (isset($info['encrypted']) && $info['encrypted'] === true) {
+			$firstBlock = $this->readFirstBlock($path);
+			$result = $this->parseRawHeader($firstBlock);
 
-		// if the header doesn't contain a encryption module we check if it is a
-		// legacy file. If true, we add the default encryption module
-		if (!isset($result[Util::HEADER_ENCRYPTION_MODULE_KEY])) {
-			if (!empty($result)) {
+			// if the header doesn't contain a encryption module we check if it is a
+			// legacy file. If true, we add the default encryption module
+			if (!isset($result[Util::HEADER_ENCRYPTION_MODULE_KEY]) && (!empty($result) || $exists)) {
 				$result[Util::HEADER_ENCRYPTION_MODULE_KEY] = 'OC_DEFAULT_MODULE';
-			} elseif ($exists) {
-				// if the header was empty we have to check first if it is a encrypted file at all
-				// We would do query to filecache only if we know that entry in filecache exists
-				$info = $this->getCache()->get($path);
-				if (isset($info['encrypted']) && $info['encrypted'] === true) {
-					$result[Util::HEADER_ENCRYPTION_MODULE_KEY] = 'OC_DEFAULT_MODULE';
-				}
 			}
 		}
 

@@ -1,5 +1,5 @@
 window.addEventListener('DOMContentLoaded', function(){
-	$('#excludedGroups').each(function (index, element) {
+	$('#excludedGroups,#linksExcludedGroups').each(function (index, element) {
 		OC.Settings.setupGroupsSelect($(element));
 		$(element).change(function(ev) {
 			var groups = ev.val || [];
@@ -90,6 +90,10 @@ window.addEventListener('DOMContentLoaded', function(){
 		$("#setDefaultInternalExpireDate").toggleClass('hidden', !this.checked);
 	});
 
+	$('#shareapiDefaultRemoteExpireDate').change(function() {
+		$("#setDefaultRemoteExpireDate").toggleClass('hidden', !this.checked);
+	});
+
 	$('#publicShareDisclaimer').change(function() {
 		$("#publicShareDisclaimerText").toggleClass('hidden', !this.checked);
 		if(!this.checked) {
@@ -122,10 +126,10 @@ window.addEventListener('DOMContentLoaded', function(){
 	var savePublicShareDisclaimerText = _.debounce(function(value) {
 		var options = {
 			success: function() {
-				OC.msg.finishedSuccess('#publicShareDisclaimerStatus', t('core', 'Saved'));
+				OC.msg.finishedSuccess('#publicShareDisclaimerStatus', t('settings', 'Saved'));
 			},
 			error: function() {
-				OC.msg.finishedError('#publicShareDisclaimerStatus', t('core', 'Not saved'));
+				OC.msg.finishedError('#publicShareDisclaimerStatus', t('settings', 'Not saved'));
 			}
 		};
 
@@ -144,6 +148,8 @@ window.addEventListener('DOMContentLoaded', function(){
 
 	$('#shareapi_allow_share_dialog_user_enumeration').on('change', function() {
 		$('#shareapi_restrict_user_enumeration_to_group_setting').toggleClass('hidden', !this.checked);
+		$('#shareapi_restrict_user_enumeration_to_phone_setting').toggleClass('hidden', !this.checked);
+		$('#shareapi_restrict_user_enumeration_combinewarning_setting').toggleClass('hidden', !this.checked);
 	})
 
 	$('#allowLinks').change(function() {

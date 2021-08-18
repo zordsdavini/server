@@ -30,8 +30,8 @@
 			:menu-position="'left'"
 			:url="share.shareWithAvatar" />
 		<component :is="share.shareWithLink ? 'a' : 'div'"
-			:href="share.shareWithLink"
 			v-tooltip.auto="tooltip"
+			:href="share.shareWithLink"
 			class="sharing-entry__desc">
 			<h5>{{ title }}<span v-if="!isUnique" class="sharing-entry__desc-unique"> ({{ share.shareWithDisplayNameUnique }})</span></h5>
 			<p v-if="hasStatus">
@@ -207,7 +207,7 @@ export default {
 					// todo: strong or italic?
 					// but the t function escape any html from the data :/
 					user: this.share.shareWithDisplayName,
-					owner: this.share.owner,
+					owner: this.share.ownerDisplayName,
 				}
 
 				if (this.share.type === this.SHARE_TYPES.SHARE_TYPE_GROUP) {
@@ -222,8 +222,12 @@ export default {
 		},
 
 		canHaveNote() {
-			return this.share.type !== this.SHARE_TYPES.SHARE_TYPE_REMOTE
-				&& this.share.type !== this.SHARE_TYPES.SHARE_TYPE_REMOTE_GROUP
+			return !this.isRemote
+		},
+
+		isRemote() {
+			return this.share.type === this.SHARE_TYPES.SHARE_TYPE_REMOTE
+				|| this.share.type === this.SHARE_TYPES.SHARE_TYPE_REMOTE_GROUP
 		},
 
 		/**
@@ -323,6 +327,16 @@ export default {
 		},
 
 		/**
+		 * Is this share readable
+		 * Needed for some federated shares that might have been added from file drop links
+		 */
+		hasRead: {
+			get() {
+				return this.share.hasReadPermission
+			},
+		},
+
+		/**
 		 * Is the current share a folder ?
 		 * @returns {boolean}
 		 */
@@ -348,8 +362,13 @@ export default {
 		},
 
 		dateMaxEnforced() {
-			return this.config.isDefaultInternalExpireDateEnforced
-				&& moment().add(1 + this.config.defaultInternalExpireDate, 'days')
+			if (!this.isRemote) {
+				return this.config.isDefaultInternalExpireDateEnforced
+					&& moment().add(1 + this.config.defaultInternalExpireDate, 'days')
+			} else {
+				return this.config.isDefaultRemoteExpireDateEnforced
+					&& moment().add(1 + this.config.defaultRemoteExpireDate, 'days')
+			}
 		},
 
 		/**
@@ -368,7 +387,8 @@ export default {
 	methods: {
 		updatePermissions({ isEditChecked = this.canEdit, isCreateChecked = this.canCreate, isDeleteChecked = this.canDelete, isReshareChecked = this.canReshare } = {}) {
 			// calc permissions if checked
-			const permissions = this.permissionsRead
+			const permissions = 0
+				| (this.hasRead ? this.permissionsRead : 0)
 				| (isCreateChecked ? this.permissionsCreate : 0)
 				| (isDeleteChecked ? this.permissionsDelete : 0)
 				| (isEditChecked ? this.permissionsEdit : 0)

@@ -25,7 +25,6 @@ declare(strict_types=1);
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\SystemTag;
 
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -78,7 +77,7 @@ class SystemTagObjectMapper implements ISystemTagObjectMapper {
 			->from(self::RELATION_TABLE)
 			->where($query->expr()->in('objectid', $query->createParameter('objectids')))
 			->andWhere($query->expr()->eq('objecttype', $query->createParameter('objecttype')))
-			->setParameter('objectids', $objIds, IQueryBuilder::PARAM_INT_ARRAY)
+			->setParameter('objectids', $objIds, IQueryBuilder::PARAM_STR_ARRAY)
 			->setParameter('objecttype', $objectType)
 			->addOrderBy('objectid', 'ASC')
 			->addOrderBy('systemtagid', 'ASC');

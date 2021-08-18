@@ -29,7 +29,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OCA\Files_Sharing\External;
 
 use GuzzleHttp\Exception\ClientException;
@@ -73,9 +72,9 @@ class Storage extends DAV implements ISharedStorage, IDisableEncryptionStorage {
 		$this->cloudId = $options['cloudId'];
 		$discoveryService = \OC::$server->query(\OCP\OCS\IDiscoveryService::class);
 
-		list($protocol, $remote) = explode('://', $this->cloudId->getRemote());
+		[$protocol, $remote] = explode('://', $this->cloudId->getRemote());
 		if (strpos($remote, '/')) {
-			list($host, $root) = explode('/', $remote, 2);
+			[$host, $root] = explode('/', $remote, 2);
 		} else {
 			$host = $remote;
 			$root = '';

@@ -6,6 +6,7 @@
  * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Daniel Kesselberg <mail@danielkesselberg.de>
  * @author Joas Schilling <coding@schilljs.com>
+ * @author John Molakvoæ <skjnldsv@protonmail.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Michael Weimann <mail@michael-weimann.eu>
  * @author Morris Jobke <hey@morrisjobke.de>
@@ -31,7 +32,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OCA\Settings\Tests\Controller;
 
 use bantu\IniGetWrapper\IniGetWrapper;
@@ -51,12 +51,12 @@ use OCP\IConfig;
 use OCP\IDateTimeFormatter;
 use OCP\IDBConnection;
 use OCP\IL10N;
-use OCP\ILogger;
 use OCP\IRequest;
 use OCP\IURLGenerator;
 use OCP\Lock\ILockingProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Test\TestCase;
 
@@ -79,7 +79,7 @@ class CheckSetupControllerTest extends TestCase {
 	private $urlGenerator;
 	/** @var IL10N | \PHPUnit\Framework\MockObject\MockObject */
 	private $l10n;
-	/** @var ILogger */
+	/** @var LoggerInterface */
 	private $logger;
 	/** @var Checker|\PHPUnit\Framework\MockObject\MockObject */
 	private $checker;
@@ -129,7 +129,7 @@ class CheckSetupControllerTest extends TestCase {
 			->disableOriginalConstructor()->getMock();
 		$this->checker = $this->getMockBuilder('\OC\IntegrityCheck\Checker')
 				->disableOriginalConstructor()->getMock();
-		$this->logger = $this->getMockBuilder(ILogger::class)->getMock();
+		$this->logger = $this->getMockBuilder(LoggerInterface::class)->getMock();
 		$this->db = $this->getMockBuilder(Connection::class)
 			->disableOriginalConstructor()->getMock();
 		$this->lockingProvider = $this->getMockBuilder(ILockingProvider::class)->getMock();
@@ -677,7 +677,7 @@ class CheckSetupControllerTest extends TestCase {
 			->expects($this->once())
 			->method('getCurlVersion')
 			->willReturn(['ssl_version' => 'OpenSSL/1.0.1c']);
-		$this->assertSame('cURL is using an outdated OpenSSL version (OpenSSL/1.0.1c). Please update your operating system or features such as installing and updating apps via the app store or Federated Cloud Sharing will not work reliably.', $this->invokePrivate($this->checkSetupController, 'isUsedTlsLibOutdated'));
+		$this->assertSame('cURL is using an outdated OpenSSL version (OpenSSL/1.0.1c). Please update your operating system or features such as installing and updating apps via the App Store or Federated Cloud Sharing will not work reliably.', $this->invokePrivate($this->checkSetupController, 'isUsedTlsLibOutdated'));
 	}
 
 	public function testIsUsedTlsLibOutdatedWithOlderOpenSslAndWithoutAppstore() {
@@ -701,7 +701,7 @@ class CheckSetupControllerTest extends TestCase {
 			->expects($this->once())
 			->method('getCurlVersion')
 			->willReturn(['ssl_version' => 'OpenSSL/1.0.2a']);
-		$this->assertSame('cURL is using an outdated OpenSSL version (OpenSSL/1.0.2a). Please update your operating system or features such as installing and updating apps via the app store or Federated Cloud Sharing will not work reliably.', $this->invokePrivate($this->checkSetupController, 'isUsedTlsLibOutdated'));
+		$this->assertSame('cURL is using an outdated OpenSSL version (OpenSSL/1.0.2a). Please update your operating system or features such as installing and updating apps via the App Store or Federated Cloud Sharing will not work reliably.', $this->invokePrivate($this->checkSetupController, 'isUsedTlsLibOutdated'));
 	}
 
 	public function testIsUsedTlsLibOutdatedWithMatchingOpenSslVersion() {
@@ -806,7 +806,7 @@ class CheckSetupControllerTest extends TestCase {
 			->method('newClient')
 			->willReturn($client);
 
-		$this->assertSame('cURL is using an outdated NSS version (NSS/1.0.2b). Please update your operating system or features such as installing and updating apps via the app store or Federated Cloud Sharing will not work reliably.', $this->invokePrivate($this->checkSetupController, 'isUsedTlsLibOutdated'));
+		$this->assertSame('cURL is using an outdated NSS version (NSS/1.0.2b). Please update your operating system or features such as installing and updating apps via the App Store or Federated Cloud Sharing will not work reliably.', $this->invokePrivate($this->checkSetupController, 'isUsedTlsLibOutdated'));
 	}
 
 

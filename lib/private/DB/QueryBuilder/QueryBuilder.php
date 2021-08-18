@@ -2,6 +2,7 @@
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
+ * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Daniel Kesselberg <mail@danielkesselberg.de>
  * @author J0WI <J0WI@users.noreply.github.com>
@@ -27,7 +28,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\DB\QueryBuilder;
 
 use Doctrine\DBAL\Platforms\MySQLPlatform;
@@ -48,6 +48,7 @@ use OC\DB\QueryBuilder\FunctionBuilder\SqliteFunctionBuilder;
 use OC\DB\ResultAdapter;
 use OC\SystemConfig;
 use OCP\DB\IResult;
+use OCP\DB\QueryBuilder\ICompositeExpression;
 use OCP\DB\QueryBuilder\ILiteral;
 use OCP\DB\QueryBuilder\IParameter;
 use OCP\DB\QueryBuilder\IQueryBuilder;
@@ -253,12 +254,94 @@ class QueryBuilder implements IQueryBuilder {
 			}
 		}
 
+		$numberOfParameters = 0;
+		$hasTooLargeArrayParameter = false;
+		foreach ($this->getParameters() as $parameter) {
+			if (is_array($parameter)) {
+				$count = count($parameter);
+				$numberOfParameters += $count;
+				$hasTooLargeArrayParameter = $hasTooLargeArrayParameter || ($count > 1000);
+			}
+		}
+
+		if ($hasTooLargeArrayParameter) {
+			$exception = new QueryException('More than 1000 expressions in a list are not allowed on Oracle.');
+			$this->logger->logException($exception, [
+				'message' => 'More than 1000 expressions in a list are not allowed on Oracle.',
+				'query' => $this->getSQL(),
+				'level' => ILogger::ERROR,
+				'app' => 'core',
+			]);
+		}
+
+		if ($numberOfParameters > 65535) {
+			$exception = new QueryException('The number of parameters must not exceed 65535. Restriction by PostgreSQL.');
+			$this->logger->logException($exception, [
+				'message' => 'The number of parameters must not exceed 65535. Restriction by PostgreSQL.',
+				'query' => $this->getSQL(),
+				'level' => ILogger::ERROR,
+				'app' => 'core',
+			]);
+		}
+
 		$result = $this->queryBuilder->execute();
 		if (is_int($result)) {
 			return $result;
 		}
 		return new ResultAdapter($result);
 	}
+
+	public function executeQuery(): IResult {
+		if ($this->getType() !== \Doctrine\DBAL\Query\QueryBuilder::SELECT) {
+			throw new \RuntimeException('Invalid query type, expected SELECT query');
+		}
+
+		try {
+			$result = $this->execute();
+		} catch (\Doctrine\DBAL\Exception $e) {
+			throw \OC\DB\Exceptions\DbalException::wrap($e);
+		}
+
+		if ($result instanceof IResult) {
+			return $result;
+		}
+
+		throw new \RuntimeException('Invalid return type for query');
+	}
+
+	/**
+	 * Monkey-patched compatibility layer for apps that were adapted for Nextcloud 22 before
+	 * the first beta, where executeStatement was named executeUpdate.
+	 *
+	 * Static analysis should catch those misuses, but until then let's try to keep things
+	 * running.
+	 *
+	 * @internal
+	 * @deprecated
+	 * @todo drop ASAP
+	 */
+	public function executeUpdate(): int {
+		return $this->executeStatement();
+	}
+
+	public function executeStatement(): int {
+		if ($this->getType() === \Doctrine\DBAL\Query\QueryBuilder::SELECT) {
+			throw new \RuntimeException('Invalid query type, expected INSERT, DELETE or UPDATE statement');
+		}
+
+		try {
+			$result = $this->execute();
+		} catch (\Doctrine\DBAL\Exception $e) {
+			throw \OC\DB\Exceptions\DbalException::wrap($e);
+		}
+
+		if (!is_int($result)) {
+			throw new \RuntimeException('Invalid return type for statement');
+		}
+
+		return $result;
+	}
+
 
 	/**
 	 * Gets the complete SQL string formed by the current specifications of this QueryBuilder.
@@ -634,7 +717,7 @@ class QueryBuilder implements IQueryBuilder {
 	 * @param string $fromAlias The alias that points to a from clause.
 	 * @param string $join The table name to join.
 	 * @param string $alias The alias of the join table.
-	 * @param string $condition The condition for the join.
+	 * @param string|ICompositeExpression|null $condition The condition for the join.
 	 *
 	 * @return $this This QueryBuilder instance.
 	 */
@@ -662,7 +745,7 @@ class QueryBuilder implements IQueryBuilder {
 	 * @param string $fromAlias The alias that points to a from clause.
 	 * @param string $join The table name to join.
 	 * @param string $alias The alias of the join table.
-	 * @param string $condition The condition for the join.
+	 * @param string|ICompositeExpression|null $condition The condition for the join.
 	 *
 	 * @return $this This QueryBuilder instance.
 	 */
@@ -690,7 +773,7 @@ class QueryBuilder implements IQueryBuilder {
 	 * @param string $fromAlias The alias that points to a from clause.
 	 * @param string $join The table name to join.
 	 * @param string $alias The alias of the join table.
-	 * @param string $condition The condition for the join.
+	 * @param string|ICompositeExpression|null $condition The condition for the join.
 	 *
 	 * @return $this This QueryBuilder instance.
 	 */
@@ -718,7 +801,7 @@ class QueryBuilder implements IQueryBuilder {
 	 * @param string $fromAlias The alias that points to a from clause.
 	 * @param string $join The table name to join.
 	 * @param string $alias The alias of the join table.
-	 * @param string $condition The condition for the join.
+	 * @param string|ICompositeExpression|null $condition The condition for the join.
 	 *
 	 * @return $this This QueryBuilder instance.
 	 */
@@ -1203,11 +1286,11 @@ class QueryBuilder implements IQueryBuilder {
 	 * @return int
 	 * @throws \BadMethodCallException When being called before an insert query has been run.
 	 */
-	public function getLastInsertId() {
+	public function getLastInsertId(): int {
 		if ($this->getType() === \Doctrine\DBAL\Query\QueryBuilder::INSERT && $this->lastInsertedTable) {
 			// lastInsertId() needs the prefix but no quotes
 			$table = $this->prefixTableName($this->lastInsertedTable);
-			return (int) $this->connection->lastInsertId($table);
+			return $this->connection->lastInsertId($table);
 		}
 
 		throw new \BadMethodCallException('Invalid call to getLastInsertId without using insert() before.');

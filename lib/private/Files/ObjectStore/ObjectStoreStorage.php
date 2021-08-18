@@ -27,18 +27,19 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\Files\ObjectStore;
 
 use Icewind\Streams\CallbackWrapper;
 use Icewind\Streams\CountWrapper;
 use Icewind\Streams\IteratorDirectory;
+use OC\Files\Cache\Cache;
 use OC\Files\Cache\CacheEntry;
 use OC\Files\Storage\PolyFill\CopyDirectory;
 use OCP\Files\Cache\ICacheEntry;
 use OCP\Files\FileInfo;
 use OCP\Files\NotFoundException;
 use OCP\Files\ObjectStore\IObjectStore;
+use OCP\Files\Storage\IStorage;
 
 class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	use CopyDirectory;
@@ -464,6 +465,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 
 		$stat['mimetype'] = $mimetype;
 		$stat['etag'] = $this->getETag($path);
+		$stat['checksum'] = '';
 
 		$exists = $this->getCache()->inCache($path);
 		$uploadPath = $exists ? $path : $path . '.part';
@@ -484,13 +486,16 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 					]);
 					$size = $writtenSize;
 				});
-				$this->objectStore->writeObject($urn, $countStream);
+				$this->objectStore->writeObject($urn, $countStream, $mimetype);
 				if (is_resource($countStream)) {
 					fclose($countStream);
 				}
 				$stat['size'] = $size;
 			} else {
-				$this->objectStore->writeObject($urn, $stream);
+				$this->objectStore->writeObject($urn, $stream, $mimetype);
+				if (is_resource($stream)) {
+					fclose($stream);
+				}
 			}
 		} catch (\Exception $ex) {
 			if (!$exists) {
@@ -530,6 +535,19 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 		return $this->objectStore;
 	}
 
+	public function copyFromStorage(IStorage $sourceStorage, $sourceInternalPath, $targetInternalPath, $preserveMtime = false) {
+		if ($sourceStorage->instanceOfStorage(ObjectStoreStorage::class)) {
+			/** @var ObjectStoreStorage $sourceStorage */
+			if ($sourceStorage->getObjectStore()->getStorageId() === $this->getObjectStore()->getStorageId()) {
+				$sourceEntry = $sourceStorage->getCache()->get($sourceInternalPath);
+				$this->copyInner($sourceEntry, $targetInternalPath);
+				return true;
+			}
+		}
+
+		return parent::copyFromStorage($sourceStorage, $sourceInternalPath, $targetInternalPath);
+	}
+
 	public function copy($path1, $path2) {
 		$path1 = $this->normalizePath($path1);
 		$path2 = $this->normalizePath($path2);
@@ -567,14 +585,13 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 
 		$sourceUrn = $this->getURN($sourceEntry->getId());
 
-		$cache->copyFromCache($cache, $sourceEntry, $to);
-		$targetEntry = $cache->get($to);
-
-		if (!$targetEntry) {
-			throw new \Exception('Target not in cache after copy');
+		if (!$cache instanceof Cache) {
+			throw new \Exception("Invalid source cache for object store copy");
 		}
 
-		$targetUrn = $this->getURN($targetEntry->getId());
+		$targetId = $cache->copyFromCache($cache, $sourceEntry, $to);
+
+		$targetUrn = $this->getURN($targetId);
 
 		try {
 			$this->objectStore->copyObject($sourceUrn, $targetUrn);

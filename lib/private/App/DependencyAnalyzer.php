@@ -12,7 +12,6 @@
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Stefan Weil <sw@weilnetz.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
- * @author Valdnet <47037905+Valdnet@users.noreply.github.com>
  *
  * @license AGPL-3.0
  *
@@ -29,7 +28,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\App;
 
 use OCP\IL10N;
@@ -123,7 +121,7 @@ class DependencyAnalyzer {
 		// version string but null. In case one parameter is null normalization
 		// will therefore be skipped
 		if ($first !== null && $second !== null) {
-			list($first, $second) = $this->normalizeVersions($first, $second);
+			[$first, $second] = $this->normalizeVersions($first, $second);
 		}
 
 		return version_compare($first, $second, $operator);

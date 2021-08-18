@@ -44,7 +44,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\Files;
 
 use Icewind\Streams\CallbackWrapper;
@@ -422,7 +421,9 @@ class View {
 	 */
 	public function readfile($path) {
 		$this->assertPathLength($path);
-		@ob_end_clean();
+		if (ob_get_level()) {
+			ob_end_clean();
+		}
 		$handle = $this->fopen($path, 'rb');
 		if ($handle) {
 			$chunkSize = 524288; // 512 kB chunks
@@ -446,7 +447,9 @@ class View {
 	 */
 	public function readfilePart($path, $from, $to) {
 		$this->assertPathLength($path);
-		@ob_end_clean();
+		if (ob_get_level()) {
+			ob_end_clean();
+		}
 		$handle = $this->fopen($path, 'rb');
 		if ($handle) {
 			$chunkSize = 524288; // 512 kB chunks
@@ -456,7 +459,7 @@ class View {
 				// forward file handle via chunked fread because fseek seem to have failed
 
 				$end = $from + 1;
-				while (!feof($handle) && ftell($handle) < $end) {
+				while (!feof($handle) && ftell($handle) < $end && ftell($handle) !== $from) {
 					$len = $from - ftell($handle);
 					if ($len > $chunkSize) {
 						$len = $chunkSize;
@@ -1643,6 +1646,7 @@ class View {
 		$mount = $this->getMount('');
 		$mountPoint = $mount->getMountPoint();
 		$storage = $mount->getStorage();
+		$userManager = \OC::$server->getUserManager();
 		if ($storage) {
 			$cache = $storage->getCache('');
 
@@ -1652,7 +1656,7 @@ class View {
 					$internalPath = $result['path'];
 					$path = $mountPoint . $result['path'];
 					$result['path'] = substr($mountPoint . $result['path'], $rootLength);
-					$owner = \OC::$server->getUserManager()->get($storage->getOwner($internalPath));
+					$owner = $userManager->get($storage->getOwner($internalPath));
 					$files[] = new FileInfo($path, $storage, $internalPath, $result, $mount, $owner);
 				}
 			}
@@ -1671,7 +1675,7 @@ class View {
 							$internalPath = $result['path'];
 							$result['path'] = rtrim($relativeMountPoint . $result['path'], '/');
 							$path = rtrim($mountPoint . $internalPath, '/');
-							$owner = \OC::$server->getUserManager()->get($storage->getOwner($internalPath));
+							$owner = $userManager->get($storage->getOwner($internalPath));
 							$files[] = new FileInfo($path, $storage, $internalPath, $result, $mount, $owner);
 						}
 					}
@@ -2170,7 +2174,7 @@ class View {
 			throw new NotFoundException($this->getAbsolutePath($filename) . ' not found');
 		}
 		$uid = $info->getOwner()->getUID();
-		if ($uid != \OCP\User::getUser()) {
+		if ($uid != \OC_User::getUser()) {
 			Filesystem::initMountPoints($uid);
 			$ownerView = new View('/' . $uid . '/files');
 			try {

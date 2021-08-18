@@ -33,7 +33,6 @@ declare(strict_types=1);
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\DB;
 
 use Doctrine\Common\EventManager;
@@ -44,6 +43,9 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Exception\ConstraintViolationException;
 use Doctrine\DBAL\Exception\NotNullConstraintViolationException;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
+use Doctrine\DBAL\Platforms\OraclePlatform;
+use Doctrine\DBAL\Platforms\PostgreSQL94Platform;
+use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Statement;
@@ -53,7 +55,7 @@ use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\ILogger;
 use OCP\PreConditionNotMetException;
 
-class Connection extends ReconnectWrapper {
+class Connection extends \Doctrine\DBAL\Connection {
 	/** @var string */
 	protected $tablePrefix;
 
@@ -74,6 +76,9 @@ class Connection extends ReconnectWrapper {
 	/** @var int */
 	protected $queriesExecuted = 0;
 
+	/**
+	 * @throws Exception
+	 */
 	public function connect() {
 		try {
 			return parent::connect();
@@ -169,6 +174,9 @@ class Connection extends ReconnectWrapper {
 		if (!isset($params['tablePrefix'])) {
 			throw new \Exception('tablePrefix not set');
 		}
+		/**
+		 * @psalm-suppress InternalMethod
+		 */
 		parent::__construct($params, $driver, $config, $eventManager);
 		$this->adapter = new $params['adapter']($this);
 		$this->tablePrefix = $params['tablePrefix'];
@@ -183,7 +191,9 @@ class Connection extends ReconnectWrapper {
 	 * @param string $statement The SQL statement to prepare.
 	 * @param int $limit
 	 * @param int $offset
+	 *
 	 * @return Statement The prepared statement.
+	 * @throws Exception
 	 */
 	public function prepare($statement, $limit = null, $offset = null): Statement {
 		if ($limit === -1) {
@@ -221,6 +231,9 @@ class Connection extends ReconnectWrapper {
 		return parent::executeQuery($sql, $params, $types, $qcp);
 	}
 
+	/**
+	 * @throws Exception
+	 */
 	public function executeUpdate(string $sql, array $params = [], array $types = []): int {
 		$sql = $this->replaceTablePrefix($sql);
 		$sql = $this->adapter->fixupStatement($sql);
@@ -258,7 +271,9 @@ class Connection extends ReconnectWrapper {
 	 * columns or sequences.
 	 *
 	 * @param string $seqName Name of the sequence object from which the ID should be returned.
+	 *
 	 * @return string the last inserted ID.
+	 * @throws Exception
 	 */
 	public function lastInsertId($seqName = null) {
 		if ($seqName) {
@@ -267,7 +282,10 @@ class Connection extends ReconnectWrapper {
 		return $this->adapter->lastInsertId($seqName);
 	}
 
-	// internal use
+	/**
+	 * @internal
+	 * @throws Exception
+	 */
 	public function realLastInsertId($seqName = null) {
 		return parent::lastInsertId($seqName);
 	}
@@ -364,7 +382,9 @@ class Connection extends ReconnectWrapper {
 	 * Create an exclusive read+write lock on a table
 	 *
 	 * @param string $tableName
+	 *
 	 * @throws \BadMethodCallException When trying to acquire a second lock
+	 * @throws Exception
 	 * @since 9.1.0
 	 */
 	public function lockTable($tableName) {
@@ -380,6 +400,7 @@ class Connection extends ReconnectWrapper {
 	/**
 	 * Release a previous acquired lock again
 	 *
+	 * @throws Exception
 	 * @since 9.1.0
 	 */
 	public function unlockTable() {
@@ -415,6 +436,8 @@ class Connection extends ReconnectWrapper {
 	 * Drop a table from the database if it exists
 	 *
 	 * @param string $table table name without the prefix
+	 *
+	 * @throws Exception
 	 */
 	public function dropTable($table) {
 		$table = $this->tablePrefix . trim($table);
@@ -428,7 +451,9 @@ class Connection extends ReconnectWrapper {
 	 * Check if a table exists
 	 *
 	 * @param string $table table name without the prefix
+	 *
 	 * @return bool
+	 * @throws Exception
 	 */
 	public function tableExists($table) {
 		$table = $this->tablePrefix . trim($table);
@@ -483,10 +508,10 @@ class Connection extends ReconnectWrapper {
 	 * Create the schema of the connected database
 	 *
 	 * @return Schema
+	 * @throws Exception
 	 */
 	public function createSchema() {
-		$schemaManager = new MDB2SchemaManager($this);
-		$migrator = $schemaManager->getMigrator();
+		$migrator = $this->getMigrator();
 		return $migrator->createSchema();
 	}
 
@@ -494,10 +519,30 @@ class Connection extends ReconnectWrapper {
 	 * Migrate the database to the given schema
 	 *
 	 * @param Schema $toSchema
+	 *
+	 * @throws Exception
 	 */
 	public function migrateToSchema(Schema $toSchema) {
-		$schemaManager = new MDB2SchemaManager($this);
-		$migrator = $schemaManager->getMigrator();
+		$migrator = $this->getMigrator();
 		$migrator->migrate($toSchema);
+	}
+
+	private function getMigrator() {
+		// TODO properly inject those dependencies
+		$random = \OC::$server->getSecureRandom();
+		$platform = $this->getDatabasePlatform();
+		$config = \OC::$server->getConfig();
+		$dispatcher = \OC::$server->getEventDispatcher();
+		if ($platform instanceof SqlitePlatform) {
+			return new SQLiteMigrator($this, $config, $dispatcher);
+		} elseif ($platform instanceof OraclePlatform) {
+			return new OracleMigrator($this, $config, $dispatcher);
+		} elseif ($platform instanceof MySQLPlatform) {
+			return new MySQLMigrator($this, $config, $dispatcher);
+		} elseif ($platform instanceof PostgreSQL94Platform) {
+			return new PostgreSqlMigrator($this, $config, $dispatcher);
+		} else {
+			return new Migrator($this, $config, $dispatcher);
+		}
 	}
 }

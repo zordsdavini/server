@@ -5,6 +5,7 @@
  * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author J0WI <J0WI@users.noreply.github.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <robin@icewind.nl>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Tigran Mkrtchyan <tigran.mkrtchyan@desy.de>
@@ -25,7 +26,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\Files\Storage\Wrapper;
 
 use OC\Cache\CappedMemoryCache;
@@ -531,10 +531,6 @@ class Encoding extends Wrapper {
 		return $result;
 	}
 
-	/**
-	 * @param string $path
-	 * @return array
-	 */
 	public function getMetaData($path) {
 		return $this->storage->getMetaData($this->findPathToUse($path));
 	}

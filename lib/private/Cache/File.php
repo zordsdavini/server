@@ -27,7 +27,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\Cache;
 
 use OC\Files\Filesystem;
@@ -49,7 +48,7 @@ class File implements ICache {
 	 * @throws \OC\User\NoUserException
 	 */
 	protected function getStorage() {
-		if (isset($this->storage)) {
+		if ($this->storage !== null) {
 			return $this->storage;
 		}
 		if (\OC::$server->getUserSession()->isLoggedIn()) {
@@ -109,7 +108,7 @@ class File implements ICache {
 		// unique id to avoid chunk collision, just in case
 		$uniqueId = \OC::$server->getSecureRandom()->generate(
 			16,
-			ISecureRandom::CHAR_DIGITS . ISecureRandom::CHAR_LOWER . ISecureRandom::CHAR_UPPER
+			ISecureRandom::CHAR_ALPHANUMERIC
 		);
 
 		// use part file to prevent hasKey() to find the key

@@ -25,7 +25,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\Encryption\Keys;
 
 use OC\Encryption\Util;
@@ -365,7 +364,7 @@ class Storage implements IStorage {
 	 * @return string
 	 */
 	private function getFileKeyDir($encryptionModuleId, $path) {
-		list($owner, $filename) = $this->util->getUidAndFilename($path);
+		[$owner, $filename] = $this->util->getUidAndFilename($path);
 
 		// in case of system wide mount points the keys are stored directly in the data directory
 		if ($this->util->isSystemWideMountPoint($filename, $owner)) {
@@ -457,7 +456,7 @@ class Storage implements IStorage {
 	 * @return string
 	 */
 	protected function getPathToKeys($path) {
-		list($owner, $relativePath) = $this->util->getUidAndFilename($path);
+		[$owner, $relativePath] = $this->util->getUidAndFilename($path);
 		$systemWideMountPoint = $this->util->isSystemWideMountPoint($relativePath, $owner);
 
 		if ($systemWideMountPoint) {

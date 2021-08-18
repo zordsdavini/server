@@ -23,7 +23,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OCA\DAV\Files;
 
 use OCP\Files\FileInfo;
@@ -44,7 +43,7 @@ class RootCollection extends AbstractPrincipalCollection {
 	 * @return INode
 	 */
 	public function getChildForPrincipal(array $principalInfo) {
-		list(,$name) = \Sabre\Uri\split($principalInfo['uri']);
+		[,$name] = \Sabre\Uri\split($principalInfo['uri']);
 		$user = \OC::$server->getUserSession()->getUser();
 		if (is_null($user) || $name !== $user->getUID()) {
 			// a user is only allowed to see their own home contents, so in case another collection

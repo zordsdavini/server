@@ -26,7 +26,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OCA\DAV\DAV\Sharing;
 
 use OCA\DAV\Connector\Sabre\Principal;
@@ -195,6 +194,7 @@ class Backend {
 			->from('dav_shares')
 			->where($query->expr()->eq('resourceid', $query->createNamedParameter($resourceId)))
 			->andWhere($query->expr()->eq('type', $query->createNamedParameter($this->resourceType)))
+			->groupBy(['principaluri', 'access'])
 			->execute();
 
 		$shares = [];

@@ -26,7 +26,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\Files\Cache;
 
 use OCP\Files\Cache\ICacheEntry;
@@ -66,7 +65,7 @@ class HomeCache extends Cache {
 			$result->closeCursor();
 
 			if ($row) {
-				list($sum) = array_values($row);
+				[$sum] = array_values($row);
 				$totalSize = 0 + $sum;
 				$entry['size'] += 0;
 				if ($entry['size'] !== $totalSize) {

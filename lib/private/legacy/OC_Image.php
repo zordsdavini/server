@@ -39,7 +39,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 use OCP\IImage;
 
 /**
@@ -555,7 +554,7 @@ class OC_Image implements \OCP\IImage {
 	 */
 	public function loadFromFile($imagePath = false) {
 		// exif_imagetype throws "read error!" if file is less than 12 byte
-		if (!@is_file($imagePath) || !file_exists($imagePath) || filesize($imagePath) < 12 || !is_readable($imagePath)) {
+		if (is_bool($imagePath) || !@is_file($imagePath) || !file_exists($imagePath) || filesize($imagePath) < 12 || !is_readable($imagePath)) {
 			return false;
 		}
 		$iType = exif_imagetype($imagePath);
@@ -607,6 +606,13 @@ class OC_Image implements \OCP\IImage {
 				break;
 			case IMAGETYPE_BMP:
 				$this->resource = $this->imagecreatefrombmp($imagePath);
+				break;
+			case IMAGETYPE_WEBP:
+				if (imagetypes() & IMG_WEBP) {
+					$this->resource = @imagecreatefromwebp($imagePath);
+				} else {
+					$this->logger->debug('OC_Image->loadFromFile, webp images not supported: ' . $imagePath, ['app' => 'core']);
+				}
 				break;
 			/*
 			case IMAGETYPE_TIFF_II: // (intel byte order)

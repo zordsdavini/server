@@ -345,7 +345,7 @@ OC.FileUpload.prototype = {
 	 */
 	getResponse: function() {
 		var response = this.data.response();
-		if (response.errorThrown) {
+		if (response.errorThrown || response.textStatus === 'error') {
 			// attempt parsing Sabre exception is available
 			var xml = response.jqXHR.responseXML;
 			if (xml && xml.documentElement.localName === 'error' && xml.documentElement.namespaceURI === 'DAV:') {
@@ -902,7 +902,7 @@ OC.Uploader.prototype = _.extend({
 				dropZone: options.dropZone, // restrict dropZone to content div
 				autoUpload: false,
 				sequentialUploads: false,
-				limitConcurrentUploads: 10,
+				limitConcurrentUploads: 4,
 				/**
 				 * on first add of every selection
 				 * - check all files of originalFiles array with files in dir

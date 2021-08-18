@@ -29,7 +29,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\Files\Storage\Wrapper;
 
 use OCP\Files\InvalidPathException;
@@ -577,10 +576,6 @@ class Wrapper implements \OC\Files\Storage\Storage, ILockingStorage, IWriteStrea
 		return $this->getWrapperStorage()->moveFromStorage($sourceStorage, $sourceInternalPath, $targetInternalPath);
 	}
 
-	/**
-	 * @param string $path
-	 * @return array
-	 */
 	public function getMetaData($path) {
 		return $this->getWrapperStorage()->getMetaData($path);
 	}
@@ -633,7 +628,7 @@ class Wrapper implements \OC\Files\Storage\Storage, ILockingStorage, IWriteStrea
 			return $storage->writeStream($path, $stream, $size);
 		} else {
 			$target = $this->fopen($path, 'w');
-			list($count, $result) = \OC_Helper::streamCopy($stream, $target);
+			[$count, $result] = \OC_Helper::streamCopy($stream, $target);
 			fclose($stream);
 			fclose($target);
 			return $count;

@@ -32,6 +32,9 @@ return array(
     'OCA\\Settings\\Controller\\WebAuthnController' => $baseDir . '/../lib/Controller/WebAuthnController.php',
     'OCA\\Settings\\Events\\BeforeTemplateRenderedEvent' => $baseDir . '/../lib/Events/BeforeTemplateRenderedEvent.php',
     'OCA\\Settings\\Hooks' => $baseDir . '/../lib/Hooks.php',
+    'OCA\\Settings\\Listener\\AppPasswordCreatedActivityListener' => $baseDir . '/../lib/Listener/AppPasswordCreatedActivityListener.php',
+    'OCA\\Settings\\Listener\\UserAddedToGroupActivityListener' => $baseDir . '/../lib/Listener/UserAddedToGroupActivityListener.php',
+    'OCA\\Settings\\Listener\\UserRemovedFromGroupActivityListener' => $baseDir . '/../lib/Listener/UserRemovedFromGroupActivityListener.php',
     'OCA\\Settings\\Mailer\\NewUserMailHelper' => $baseDir . '/../lib/Mailer/NewUserMailHelper.php',
     'OCA\\Settings\\Middleware\\SubadminMiddleware' => $baseDir . '/../lib/Middleware/SubadminMiddleware.php',
     'OCA\\Settings\\Search\\AppSearch' => $baseDir . '/../lib/Search/AppSearch.php',
@@ -62,4 +65,5 @@ return array(
     'OCA\\Settings\\SetupChecks\\PhpDefaultCharset' => $baseDir . '/../lib/SetupChecks/PhpDefaultCharset.php',
     'OCA\\Settings\\SetupChecks\\PhpOutputBuffering' => $baseDir . '/../lib/SetupChecks/PhpOutputBuffering.php',
     'OCA\\Settings\\SetupChecks\\SupportedDatabase' => $baseDir . '/../lib/SetupChecks/SupportedDatabase.php',
+    'OCA\\Settings\\WellKnown\\SecurityTxtHandler' => $baseDir . '/../lib/WellKnown/SecurityTxtHandler.php',
 );

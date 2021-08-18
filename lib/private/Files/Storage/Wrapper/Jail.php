@@ -26,7 +26,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\Files\Storage\Wrapper;
 
 use OC\Files\Cache\Wrapper\CacheJail;
@@ -48,7 +47,7 @@ class Jail extends Wrapper {
 	protected $rootPath;
 
 	/**
-	 * @param array $arguments ['storage' => $storage, 'mask' => $root]
+	 * @param array $arguments ['storage' => $storage, 'root' => $root]
 	 *
 	 * $storage: The storage that will be wrapper
 	 * $root: The folder in the wrapped storage that will become the root folder of the wrapped storage
@@ -441,10 +440,6 @@ class Jail extends Wrapper {
 		return $this->getWrapperStorage()->getETag($this->getUnjailedPath($path));
 	}
 
-	/**
-	 * @param string $path
-	 * @return array
-	 */
 	public function getMetaData($path) {
 		return $this->getWrapperStorage()->getMetaData($this->getUnjailedPath($path));
 	}
@@ -532,7 +527,7 @@ class Jail extends Wrapper {
 			return $storage->writeStream($this->getUnjailedPath($path), $stream, $size);
 		} else {
 			$target = $this->fopen($path, 'w');
-			list($count, $result) = \OC_Helper::streamCopy($stream, $target);
+			[$count, $result] = \OC_Helper::streamCopy($stream, $target);
 			fclose($stream);
 			fclose($target);
 			return $count;

@@ -3,7 +3,8 @@
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
  * @author Joas Schilling <coding@schilljs.com>
- * @author John Molakvoæ (skjnldsv) <skjnldsv@protonmail.com>
+ * @author Johannes Leuker <j.leuker@hosting.de>
+ * @author John Molakvoæ <skjnldsv@protonmail.com>
  * @author Julius Härtl <jus@bitgrid.net>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
@@ -25,7 +26,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OCP;
 
 /**
@@ -128,6 +128,14 @@ interface IGroup {
 	 * @since 8.0.0
 	 */
 	public function searchDisplayName($search, $limit = null, $offset = null);
+
+	/**
+	 * Get the names of the backends the group is connected to
+	 *
+	 * @return string[]
+	 * @since 22.0.0
+	 */
+	public function getBackendNames();
 
 	/**
 	 * delete the group

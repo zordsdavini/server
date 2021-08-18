@@ -27,7 +27,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\Files\Node;
 
 use OC\Files\Filesystem;
@@ -159,7 +158,7 @@ class Node implements \OCP\Files\Node {
 	 * @throws \OCP\Files\NotFoundException
 	 */
 	public function getStorage() {
-		list($storage,) = $this->view->resolvePath($this->path);
+		[$storage,] = $this->view->resolvePath($this->path);
 		return $storage;
 	}
 
@@ -174,7 +173,7 @@ class Node implements \OCP\Files\Node {
 	 * @return string
 	 */
 	public function getInternalPath() {
-		list(, $internalPath) = $this->view->resolvePath($this->path);
+		[, $internalPath] = $this->view->resolvePath($this->path);
 		return $internalPath;
 	}
 

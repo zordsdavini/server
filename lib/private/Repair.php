@@ -2,11 +2,12 @@
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
+ * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Daniel Kesselberg <mail@danielkesselberg.de>
  * @author Georg Ehrke <oc.list@georgehrke.com>
  * @author Joas Schilling <coding@schilljs.com>
- * @author John Molakvoæ (skjnldsv) <skjnldsv@protonmail.com>
+ * @author John Molakvoæ <skjnldsv@protonmail.com>
  * @author Julius Härtl <jus@bitgrid.net>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Michael Weimann <mail@michael-weimann.eu>
@@ -31,7 +32,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC;
 
 use OC\App\AppStore\Bundles\BundleFetcher;
@@ -45,6 +45,7 @@ use OC\Repair\ClearFrontendCaches;
 use OC\Repair\ClearGeneratedAvatarCache;
 use OC\Repair\Collation;
 use OC\Repair\MoveUpdaterStepFile;
+use OC\Repair\NC22\LookupServerSendCheck;
 use OC\Repair\Owncloud\CleanPreviews;
 use OC\Repair\NC11\FixMountStorages;
 use OC\Repair\Owncloud\MoveAvatars;
@@ -65,6 +66,7 @@ use OC\Repair\OldGroupMembershipShares;
 use OC\Repair\Owncloud\DropAccountTermsTable;
 use OC\Repair\Owncloud\SaveAccountsTableData;
 use OC\Repair\RemoveLinkShares;
+use OC\Repair\RepairDavShares;
 use OC\Repair\RepairInvalidShares;
 use OC\Repair\RepairMimeTypes;
 use OC\Repair\SqliteAutoincrement;
@@ -75,6 +77,7 @@ use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Collaboration\Resources\IManager;
 use OCP\Migration\IOutput;
 use OCP\Migration\IRepairStep;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
@@ -89,15 +92,18 @@ class Repair implements IOutput {
 	/** @var string */
 	private $currentStep;
 
+	private $logger;
+
 	/**
 	 * Creates a new repair step runner
 	 *
 	 * @param IRepairStep[] $repairSteps array of RepairStep instances
 	 * @param EventDispatcherInterface $dispatcher
 	 */
-	public function __construct(array $repairSteps, EventDispatcherInterface $dispatcher) {
+	public function __construct(array $repairSteps, EventDispatcherInterface $dispatcher, LoggerInterface $logger) {
 		$this->repairSteps = $repairSteps;
 		$this->dispatcher = $dispatcher;
+		$this->logger = $logger;
 	}
 
 	/**
@@ -113,7 +119,12 @@ class Repair implements IOutput {
 		foreach ($this->repairSteps as $step) {
 			$this->currentStep = $step->getName();
 			$this->emit('\OC\Repair', 'step', [$this->currentStep]);
-			$step->run($this);
+			try {
+				$step->run($this);
+			} catch (\Exception $e) {
+				$this->logger->error("Exception while executing repair step " . $step->getName(), ['exception' => $e]);
+				$this->emit('\OC\Repair', 'error', [$e->getMessage()]);
+			}
 		}
 	}
 
@@ -189,6 +200,8 @@ class Repair implements IOutput {
 			\OC::$server->get(ShippedDashboardEnable::class),
 			\OC::$server->get(AddBruteForceCleanupJob::class),
 			\OC::$server->get(AddCheckForUserCertificatesJob::class),
+			\OC::$server->get(RepairDavShares::class),
+			\OC::$server->get(LookupServerSendCheck::class),
 		];
 	}
 
@@ -221,7 +234,7 @@ class Repair implements IOutput {
 			new Collation(\OC::$server->getConfig(), \OC::$server->getLogger(), $connectionAdapter, true),
 			new SqliteAutoincrement($connection),
 			new SaveAccountsTableData($connectionAdapter, $config),
-			new DropAccountTermsTable($connectionAdapter)
+			new DropAccountTermsTable($connectionAdapter),
 		];
 
 		return $steps;

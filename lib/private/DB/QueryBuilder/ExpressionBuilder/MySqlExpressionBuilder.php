@@ -2,8 +2,10 @@
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Joas Schilling <coding@schilljs.com>
  * @author Robin Appelman <robin@icewind.nl>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
  * @license AGPL-3.0
@@ -21,7 +23,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\DB\QueryBuilder\ExpressionBuilder;
 
 use OC\DB\ConnectionAdapter;
@@ -46,7 +47,7 @@ class MySqlExpressionBuilder extends ExpressionBuilder {
 	/**
 	 * @inheritdoc
 	 */
-	public function iLike($x, $y, $type = null) {
+	public function iLike($x, $y, $type = null): string {
 		$x = $this->helper->quoteColumnName($x);
 		$y = $this->helper->quoteColumnName($y);
 		return $this->expressionBuilder->comparison($x, ' COLLATE ' . $this->charset . '_general_ci LIKE', $y);

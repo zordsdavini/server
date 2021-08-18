@@ -47,6 +47,9 @@ class ComposerStaticInitSettings
         'OCA\\Settings\\Controller\\WebAuthnController' => __DIR__ . '/..' . '/../lib/Controller/WebAuthnController.php',
         'OCA\\Settings\\Events\\BeforeTemplateRenderedEvent' => __DIR__ . '/..' . '/../lib/Events/BeforeTemplateRenderedEvent.php',
         'OCA\\Settings\\Hooks' => __DIR__ . '/..' . '/../lib/Hooks.php',
+        'OCA\\Settings\\Listener\\AppPasswordCreatedActivityListener' => __DIR__ . '/..' . '/../lib/Listener/AppPasswordCreatedActivityListener.php',
+        'OCA\\Settings\\Listener\\UserAddedToGroupActivityListener' => __DIR__ . '/..' . '/../lib/Listener/UserAddedToGroupActivityListener.php',
+        'OCA\\Settings\\Listener\\UserRemovedFromGroupActivityListener' => __DIR__ . '/..' . '/../lib/Listener/UserRemovedFromGroupActivityListener.php',
         'OCA\\Settings\\Mailer\\NewUserMailHelper' => __DIR__ . '/..' . '/../lib/Mailer/NewUserMailHelper.php',
         'OCA\\Settings\\Middleware\\SubadminMiddleware' => __DIR__ . '/..' . '/../lib/Middleware/SubadminMiddleware.php',
         'OCA\\Settings\\Search\\AppSearch' => __DIR__ . '/..' . '/../lib/Search/AppSearch.php',
@@ -77,6 +80,7 @@ class ComposerStaticInitSettings
         'OCA\\Settings\\SetupChecks\\PhpDefaultCharset' => __DIR__ . '/..' . '/../lib/SetupChecks/PhpDefaultCharset.php',
         'OCA\\Settings\\SetupChecks\\PhpOutputBuffering' => __DIR__ . '/..' . '/../lib/SetupChecks/PhpOutputBuffering.php',
         'OCA\\Settings\\SetupChecks\\SupportedDatabase' => __DIR__ . '/..' . '/../lib/SetupChecks/SupportedDatabase.php',
+        'OCA\\Settings\\WellKnown\\SecurityTxtHandler' => __DIR__ . '/..' . '/../lib/WellKnown/SecurityTxtHandler.php',
     );
 
     public static function getInitializer(ClassLoader $loader)

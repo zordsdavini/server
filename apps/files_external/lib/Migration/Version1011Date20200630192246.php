@@ -5,6 +5,7 @@ declare(strict_types=1);
 /**
  * @copyright Copyright (c) 2020 Joas Schilling <coding@schilljs.com>
  *
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Joas Schilling <coding@schilljs.com>
  * @author Vincent Petry <vincent@nextcloud.com>
  *
@@ -17,14 +18,13 @@ declare(strict_types=1);
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
 namespace OCA\Files_External\Migration;
 
 use Closure;
@@ -96,7 +96,6 @@ class Version1011Date20200630192246 extends SimpleMigrationStep {
 			]);
 			$table->setPrimaryKey(['applicable_id']);
 			$table->addIndex(['mount_id'], 'applicable_mount');
-			$table->addIndex(['type', 'value'], 'applicable_type_value');
 			$table->addUniqueIndex(['type', 'value', 'mount_id'], 'applicable_type_value_mount');
 		}
 
@@ -120,7 +119,6 @@ class Version1011Date20200630192246 extends SimpleMigrationStep {
 				'length' => 4096,
 			]);
 			$table->setPrimaryKey(['config_id']);
-			$table->addIndex(['mount_id'], 'config_mount');
 			$table->addUniqueIndex(['mount_id', 'key'], 'config_mount_key');
 		} else {
 			$table = $schema->getTable('external_config');
@@ -150,7 +148,6 @@ class Version1011Date20200630192246 extends SimpleMigrationStep {
 				'length' => 256,
 			]);
 			$table->setPrimaryKey(['option_id']);
-			$table->addIndex(['mount_id'], 'option_mount');
 			$table->addUniqueIndex(['mount_id', 'key'], 'option_mount_key');
 		}
 		return $schema;

@@ -27,7 +27,6 @@ declare(strict_types=1);
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\Preview;
 
 use OCP\Files\File;
@@ -122,7 +121,7 @@ class HEIC extends ProviderV2 {
 	 * @return \Imagick
 	 */
 	private function resize($bp, $maxX, $maxY) {
-		list($previewWidth, $previewHeight) = array_values($bp->getImageGeometry());
+		[$previewWidth, $previewHeight] = array_values($bp->getImageGeometry());
 
 		// We only need to resize a preview which doesn't fit in the maximum dimensions
 		if ($previewWidth > $maxX || $previewHeight > $maxY) {

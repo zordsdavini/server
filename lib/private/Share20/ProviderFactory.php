@@ -6,14 +6,15 @@
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Daniel Calviño Sánchez <danxuliu@gmail.com>
- * @author Daniel Kesselberg <mail@danielkesselberg.de>
  * @author Joas Schilling <coding@schilljs.com>
+ * @author John Molakvoæ <skjnldsv@protonmail.com>
  * @author Julius Härtl <jus@bitgrid.net>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Maxence Lange <maxence@nextcloud.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <robin@icewind.nl>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Samuel <faust64@gmail.com>
  *
  * @license AGPL-3.0
  *
@@ -30,7 +31,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 namespace OC\Share20;
 
 use OC\Share20\Exception\ProviderException;
@@ -43,6 +43,7 @@ use OCA\ShareByMail\ShareByMailProvider;
 use OCP\Defaults;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IServerContainer;
+use OCP\Share\IManager;
 use OCP\Share\IProviderFactory;
 use OCP\Share\IShare;
 use OCP\Share\IShareProvider;
@@ -137,6 +138,7 @@ class ProviderFactory implements IProviderFactory {
 				$addressHandler,
 				$this->serverContainer->getHTTPClientService(),
 				$this->serverContainer->query(\OCP\OCS\IDiscoveryService::class),
+				$this->serverContainer->getLogger(),
 				$this->serverContainer->getJobList(),
 				\OC::$server->getCloudFederationProviderManager(),
 				\OC::$server->getCloudFederationFactory(),
@@ -195,7 +197,8 @@ class ProviderFactory implements IProviderFactory {
 				$settingsManager,
 				$this->serverContainer->query(Defaults::class),
 				$this->serverContainer->getHasher(),
-				$this->serverContainer->get(IEventDispatcher::class)
+				$this->serverContainer->get(IEventDispatcher::class),
+				$this->serverContainer->get(IManager::class)
 			);
 		}
 

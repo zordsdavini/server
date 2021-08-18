@@ -65,7 +65,7 @@
 					</li>
 				</Draggable>
 
-				<a v-if="isAdmin" :href="appStoreUrl" class="button">{{ t('dashboard', 'Get more widgets from the app store') }}</a>
+				<a v-if="isAdmin" :href="appStoreUrl" class="button">{{ t('dashboard', 'Get more widgets from the App Store') }}</a>
 
 				<h3>{{ t('dashboard', 'Change background image') }}</h3>
 				<BackgroundSettings :background="background"
@@ -90,7 +90,7 @@
 import Vue from 'vue'
 import { loadState } from '@nextcloud/initial-state'
 import { getCurrentUser } from '@nextcloud/auth'
-import { Modal } from '@nextcloud/vue'
+import Modal from '@nextcloud/vue/dist/Components/Modal'
 import Draggable from 'vuedraggable'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
@@ -166,7 +166,7 @@ export default {
 
 			// Determine part of the day
 			let partOfDay
-			if (time >= 22 && time < 5) {
+			if (time >= 22 || time < 5) {
 				partOfDay = 'night'
 			} else if (time >= 18) {
 				partOfDay = 'evening'
@@ -180,20 +180,20 @@ export default {
 			const good = {
 				morning: {
 					generic: t('dashboard', 'Good morning'),
-					withName: t('dashboard', 'Good morning, {name}', { name: this.displayName }),
+					withName: t('dashboard', 'Good morning, {name}', { name: this.displayName }, undefined, { escape: false }),
 				},
 				afternoon: {
 					generic: t('dashboard', 'Good afternoon'),
-					withName: t('dashboard', 'Good afternoon, {name}', { name: this.displayName }),
+					withName: t('dashboard', 'Good afternoon, {name}', { name: this.displayName }, undefined, { escape: false }),
 				},
 				evening: {
 					generic: t('dashboard', 'Good evening'),
-					withName: t('dashboard', 'Good evening, {name}', { name: this.displayName }),
+					withName: t('dashboard', 'Good evening, {name}', { name: this.displayName }, undefined, { escape: false }),
 				},
 				night: {
 					// Don't use "Good night" as it's not a greeting
 					generic: t('dashboard', 'Hello'),
-					withName: t('dashboard', 'Hello, {name}', { name: this.displayName }),
+					withName: t('dashboard', 'Hello, {name}', { name: this.displayName }, undefined, { escape: false }),
 				},
 			}
 
@@ -403,6 +403,7 @@ export default {
 <style lang="scss" scoped>
 #app-dashboard {
 	width: 100%;
+	min-height: 100vh;
 	background-size: cover;
 	background-position: center center;
 	background-repeat: no-repeat;
