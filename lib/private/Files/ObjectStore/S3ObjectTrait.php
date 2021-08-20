@@ -146,7 +146,7 @@ trait S3ObjectTrait {
 		$buffer = new Psr7\Stream(fopen("php://memory", 'rwb+'));
 		Utils::copyToStream($psrStream, $buffer, MultipartUploader::PART_MIN_SIZE);
 		$buffer->seek(0);
-		if ($buffer->getSize() < MultipartUploader::PART_MIN_SIZE) {
+		if ($buffer->getSize() < $this->putSizeLimit) {
 			// buffer is fully seekable, so use it directly for the small upload
 			$this->writeSingle($urn, $buffer, $mimetype);
 		} else {

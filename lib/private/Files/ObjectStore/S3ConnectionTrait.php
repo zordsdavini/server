@@ -36,6 +36,7 @@ use Aws\Credentials\EcsCredentialProvider;
 use Aws\Credentials\Credentials;
 use Aws\Exception\CredentialsException;
 use Aws\S3\Exception\S3Exception;
+use Aws\S3\MultipartUploader;
 use Aws\S3\S3Client;
 use GuzzleHttp\Promise;
 use GuzzleHttp\Promise\RejectedPromise;
@@ -63,6 +64,9 @@ trait S3ConnectionTrait {
 	/** @var int */
 	protected $uploadPartSize;
 
+	/** @var int */
+	private $putSizeLimit;
+
 	protected $test;
 
 	protected function parseParams($params) {
@@ -77,6 +81,7 @@ trait S3ConnectionTrait {
 		$this->proxy = $params['proxy'] ?? false;
 		$this->timeout = $params['timeout'] ?? 15;
 		$this->uploadPartSize = $params['uploadPartSize'] ?? 524288000;
+		$this->putSizeLimit = $params['putSizeLimit'] ?? MultipartUploader::PART_MIN_SIZE;
 		$params['region'] = empty($params['region']) ? 'eu-west-1' : $params['region'];
 		$params['hostname'] = empty($params['hostname']) ? 's3.' . $params['region'] . '.amazonaws.com' : $params['hostname'];
 		if (!isset($params['port']) || $params['port'] === '') {
