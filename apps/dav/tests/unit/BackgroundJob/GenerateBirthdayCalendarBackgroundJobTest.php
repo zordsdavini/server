@@ -28,17 +28,18 @@ namespace OCA\DAV\Tests\unit\BackgroundJob;
 use OCA\DAV\BackgroundJob\GenerateBirthdayCalendarBackgroundJob;
 use OCA\DAV\CalDAV\BirthdayService;
 use OCP\IConfig;
+use PHPUnit\Framework\MockObject\MockObject;
 use Test\TestCase;
 
 class GenerateBirthdayCalendarBackgroundJobTest extends TestCase {
 
-	/** @var BirthdayService | \PHPUnit\Framework\MockObject\MockObject */
+	/** @var BirthdayService | MockObject */
 	private $birthdayService;
 
-	/** @var IConfig | \PHPUnit\Framework\MockObject\MockObject */
+	/** @var IConfig | MockObject */
 	private $config;
 
-	/** @var \OCA\DAV\BackgroundJob\GenerateBirthdayCalendarBackgroundJob */
+	/** @var GenerateBirthdayCalendarBackgroundJob */
 	private $backgroundJob;
 
 	protected function setUp(): void {
@@ -51,7 +52,7 @@ class GenerateBirthdayCalendarBackgroundJobTest extends TestCase {
 			$this->birthdayService, $this->config);
 	}
 
-	public function testRun() {
+	public function testRun(): void {
 		$this->config->expects($this->once())
 			->method('getAppValue')
 			->with('dav', 'generateBirthdayCalendar', 'yes')
@@ -73,7 +74,7 @@ class GenerateBirthdayCalendarBackgroundJobTest extends TestCase {
 		$this->backgroundJob->run(['userId' => 'user123']);
 	}
 
-	public function testRunAndReset() {
+	public function testRunAndReset(): void {
 		$this->config->expects($this->once())
 			->method('getAppValue')
 			->with('dav', 'generateBirthdayCalendar', 'yes')
@@ -95,7 +96,7 @@ class GenerateBirthdayCalendarBackgroundJobTest extends TestCase {
 		$this->backgroundJob->run(['userId' => 'user123', 'purgeBeforeGenerating' => true]);
 	}
 
-	public function testRunGloballyDisabled() {
+	public function testRunGloballyDisabled(): void {
 		$this->config->expects($this->once())
 			->method('getAppValue')
 			->with('dav', 'generateBirthdayCalendar', 'yes')
@@ -110,7 +111,7 @@ class GenerateBirthdayCalendarBackgroundJobTest extends TestCase {
 		$this->backgroundJob->run(['userId' => 'user123']);
 	}
 
-	public function testRunUserDisabled() {
+	public function testRunUserDisabled(): void {
 		$this->config->expects($this->once())
 			->method('getAppValue')
 			->with('dav', 'generateBirthdayCalendar', 'yes')

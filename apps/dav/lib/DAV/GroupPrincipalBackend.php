@@ -125,8 +125,7 @@ class GroupPrincipalBackend implements BackendInterface {
 	 * Returns the list of members for a group-principal
 	 *
 	 * @param string $principal
-	 * @return string[]
-	 * @throws Exception
+	 * @return array
 	 */
 	public function getGroupMemberSet($principal) {
 		$elements = explode('/', $principal);
@@ -320,7 +319,7 @@ class GroupPrincipalBackend implements BackendInterface {
 	 * @param IUser $user
 	 * @return array
 	 */
-	protected function userToPrincipal($user) {
+	protected function userToPrincipal(IUser $user): array {
 		$userId = $user->getUID();
 		// getDisplayName returns UID if none
 		$displayName = $user->getDisplayName();

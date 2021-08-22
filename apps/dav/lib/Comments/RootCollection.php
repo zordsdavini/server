@@ -26,13 +26,14 @@ namespace OCA\DAV\Comments;
 
 use OCP\Comments\CommentsEntityEvent;
 use OCP\Comments\ICommentsManager;
-use OCP\ILogger;
 use OCP\IUserManager;
 use OCP\IUserSession;
+use Psr\Log\LoggerInterface;
 use Sabre\DAV\Exception\Forbidden;
 use Sabre\DAV\Exception\NotAuthenticated;
 use Sabre\DAV\Exception\NotFound;
 use Sabre\DAV\ICollection;
+use Sabre\DAV\INode;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class RootCollection implements ICollection {
@@ -46,7 +47,7 @@ class RootCollection implements ICollection {
 	/** @var string */
 	protected $name = 'comments';
 
-	/** @var ILogger */
+	/** @var LoggerInterface */
 	protected $logger;
 
 	/** @var IUserManager */
@@ -63,14 +64,14 @@ class RootCollection implements ICollection {
 	 * @param IUserManager $userManager
 	 * @param IUserSession $userSession
 	 * @param EventDispatcherInterface $dispatcher
-	 * @param ILogger $logger
+	 * @param LoggerInterface $logger
 	 */
 	public function __construct(
 		ICommentsManager $commentsManager,
 		IUserManager $userManager,
 		IUserSession $userSession,
 		EventDispatcherInterface $dispatcher,
-		ILogger $logger) {
+		LoggerInterface $logger) {
 		$this->commentsManager = $commentsManager;
 		$this->logger = $logger;
 		$this->userManager = $userManager;
@@ -139,7 +140,7 @@ class RootCollection implements ICollection {
 	 * exist.
 	 *
 	 * @param string $name
-	 * @return \Sabre\DAV\INode
+	 * @return INode
 	 * @throws NotFound
 	 */
 	public function getChild($name) {
@@ -153,7 +154,7 @@ class RootCollection implements ICollection {
 	/**
 	 * Returns an array with all the child nodes
 	 *
-	 * @return \Sabre\DAV\INode[]
+	 * @return INode[]
 	 */
 	public function getChildren() {
 		$this->initCollections();

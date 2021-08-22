@@ -35,6 +35,7 @@ use OCP\Defaults;
 use OCP\IUser;
 use OCP\IUserManager;
 use OCP\Util;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class HookManager {
@@ -110,14 +111,14 @@ class HookManager {
 			'changeUser');
 	}
 
-	public function postCreateUser($params) {
+	public function postCreateUser(array $params): void {
 		$user = $this->userManager->get($params['uid']);
 		if ($user instanceof IUser) {
 			$this->syncService->updateUser($user);
 		}
 	}
 
-	public function preDeleteUser($params) {
+	public function preDeleteUser(array $params): void {
 		$uid = $params['uid'];
 		$userPrincipalUri = 'principals/users/' . $uid;
 		$this->usersToDelete[$uid] = $this->userManager->get($uid);
@@ -126,11 +127,11 @@ class HookManager {
 		$this->addressBooksToDelete = $this->cardDav->getUsersOwnAddressBooks($userPrincipalUri);
 	}
 
-	public function preUnassignedUserId($uid) {
+	public function preUnassignedUserId(int $uid): void {
 		$this->usersToDelete[$uid] = $this->userManager->get($uid);
 	}
 
-	public function postDeleteUser($params) {
+	public function postDeleteUser(array $params): void {
 		$uid = $params['uid'];
 		if (isset($this->usersToDelete[$uid])) {
 			$this->syncService->deleteUser($this->usersToDelete[$uid]);
@@ -155,18 +156,18 @@ class HookManager {
 		}
 	}
 
-	public function postUnassignedUserId($uid) {
+	public function postUnassignedUserId(int $uid): void {
 		if (isset($this->usersToDelete[$uid])) {
 			$this->syncService->deleteUser($this->usersToDelete[$uid]);
 		}
 	}
 
-	public function changeUser($params) {
+	public function changeUser(array $params): void {
 		$user = $params['user'];
 		$this->syncService->updateUser($user);
 	}
 
-	public function firstLogin(IUser $user = null) {
+	public function firstLogin(IUser $user = null): void {
 		if (!is_null($user)) {
 			$principal = 'principals/users/' . $user->getUID();
 			if ($this->calDav->getCalendarsForUserCount($principal) === 0) {
@@ -177,7 +178,7 @@ class HookManager {
 						'components' => 'VEVENT'
 					]);
 				} catch (\Exception $ex) {
-					\OC::$server->getLogger()->logException($ex);
+					\OC::$server->get(LoggerInterface::class)->error($ex->getMessage(), ['exception' => $ex]);
 				}
 			}
 			if ($this->cardDav->getAddressBooksForUserCount($principal) === 0) {
@@ -186,7 +187,7 @@ class HookManager {
 						'{DAV:}displayname' => CardDavBackend::PERSONAL_ADDRESSBOOK_NAME,
 					]);
 				} catch (\Exception $ex) {
-					\OC::$server->getLogger()->logException($ex);
+					\OC::$server->get(LoggerInterface::class)->error($ex->getMessage(), ['exception' => $ex]);
 				}
 			}
 		}

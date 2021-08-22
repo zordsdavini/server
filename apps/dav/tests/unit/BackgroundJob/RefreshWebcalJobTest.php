@@ -33,6 +33,7 @@ use OCP\IConfig;
 use OCP\ILogger;
 use PHPUnit\Framework\MockObject\MockObject;
 
+use Psr\Log\LoggerInterface;
 use Test\TestCase;
 
 class RefreshWebcalJobTest extends TestCase {
@@ -43,7 +44,7 @@ class RefreshWebcalJobTest extends TestCase {
 	/** @var IConfig | MockObject */
 	private $config;
 
-	/** @var ILogger | MockObject */
+	/** @var LoggerInterface | MockObject */
 	private $logger;
 
 	/** @var ITimeFactory | MockObject */
@@ -57,7 +58,7 @@ class RefreshWebcalJobTest extends TestCase {
 
 		$this->refreshWebcalService = $this->createMock(RefreshWebcalService::class);
 		$this->config = $this->createMock(IConfig::class);
-		$this->logger = $this->createMock(ILogger::class);
+		$this->logger = $this->createMock(LoggerInterface::class);
 		$this->timeFactory = $this->createMock(ITimeFactory::class);
 
 		$this->jobList = $this->createMock(IJobList::class);
@@ -112,7 +113,7 @@ class RefreshWebcalJobTest extends TestCase {
 				->with('principals/users/testuser', 'sub123');
 		}
 
-		$backgroundJob->execute($this->jobList, $this->logger);
+		$backgroundJob->execute($this->jobList, $this->createMock(ILogger::class));
 	}
 
 	/**

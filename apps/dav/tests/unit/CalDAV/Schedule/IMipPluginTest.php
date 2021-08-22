@@ -29,6 +29,8 @@
  */
 namespace OCA\DAV\Tests\unit\CalDAV\Schedule;
 
+use DateTime;
+use Psr\Log\LoggerInterface;
 use OCA\DAV\CalDAV\Schedule\IMipPlugin;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\DB\QueryBuilder\IQueryBuilder;
@@ -36,7 +38,6 @@ use OCP\Defaults;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IL10N;
-use OCP\ILogger;
 use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\IUserManager;
@@ -95,8 +96,8 @@ class IMipPluginTest extends TestCase {
 		$this->emailAttachment = $this->createMock(IAttachment::class);
 		$this->mailer->method('createAttachment')->willReturn($this->emailAttachment);
 
-		/** @var ILogger|MockObject $logger */
-		$logger = $this->getMockBuilder(ILogger::class)->disableOriginalConstructor()->getMock();
+		/** @var LoggerInterface|MockObject $logger */
+		$logger = $this->getMockBuilder(LoggerInterface::class)->disableOriginalConstructor()->getMock();
 
 		$this->timeFactory = $this->getMockBuilder(ITimeFactory::class)->disableOriginalConstructor()->getMock();
 		$this->timeFactory->method('getTime')->willReturn(1496912528); // 2017-01-01
@@ -133,7 +134,7 @@ class IMipPluginTest extends TestCase {
 		$this->plugin = new IMipPlugin($this->config, $this->mailer, $logger, $this->timeFactory, $l10nFactory, $urlGenerator, $defaults, $random, $db, $this->userManager, 'user123');
 	}
 
-	public function testDelivery() {
+	public function testDelivery(): void {
 		$this->config
 	  ->expects($this->at(1))
 			->method('getAppValue')
@@ -147,7 +148,7 @@ class IMipPluginTest extends TestCase {
 		$this->assertEquals('1.1', $message->getScheduleStatus());
 	}
 
-	public function testFailedDelivery() {
+	public function testFailedDelivery(): void {
 		$this->config
 	  ->expects($this->at(1))
 			->method('getAppValue')
@@ -164,7 +165,7 @@ class IMipPluginTest extends TestCase {
 		$this->assertEquals('5.0', $message->getScheduleStatus());
 	}
 
-	public function testInvalidEmailDelivery() {
+	public function testInvalidEmailDelivery(): void {
 		$this->mailer->method('validateMailAddress')->willReturn(false);
 
 		$message = $this->_testMessage();
@@ -172,7 +173,7 @@ class IMipPluginTest extends TestCase {
 		$this->assertEquals('5.0', $message->getScheduleStatus());
 	}
 
-	public function testDeliveryWithNoCommonName() {
+	public function testDeliveryWithNoCommonName(): void {
 		$this->config
 	  ->expects($this->at(1))
 			->method('getAppValue')
@@ -199,7 +200,7 @@ class IMipPluginTest extends TestCase {
 	/**
 	 * @dataProvider dataNoMessageSendForPastEvents
 	 */
-	public function testNoMessageSendForPastEvents(array $veventParams, bool $expectsMail) {
+	public function testNoMessageSendForPastEvents(array $veventParams, bool $expectsMail): void {
 		$this->config
 	  ->method('getAppValue')
 	  ->willReturn('yes');
@@ -218,25 +219,25 @@ class IMipPluginTest extends TestCase {
 		}
 	}
 
-	public function dataNoMessageSendForPastEvents() {
+	public function dataNoMessageSendForPastEvents(): array {
 		return [
-			[['DTSTART' => new \DateTime('2017-01-01 00:00:00')], false],
-			[['DTSTART' => new \DateTime('2017-01-01 00:00:00'), 'DTEND' => new \DateTime('2017-01-01 00:00:00')], false],
-			[['DTSTART' => new \DateTime('2017-01-01 00:00:00'), 'DTEND' => new \DateTime('2017-12-31 00:00:00')], true],
-			[['DTSTART' => new \DateTime('2017-01-01 00:00:00'), 'DURATION' => 'P1D'], false],
-			[['DTSTART' => new \DateTime('2017-01-01 00:00:00'), 'DURATION' => 'P52W'], true],
-			[['DTSTART' => new \DateTime('2017-01-01 00:00:00'), 'DTEND' => new \DateTime('2017-01-01 00:00:00'), 'RRULE' => 'FREQ=WEEKLY'], true],
-			[['DTSTART' => new \DateTime('2017-01-01 00:00:00'), 'DTEND' => new \DateTime('2017-01-01 00:00:00'), 'RRULE' => 'FREQ=WEEKLY;COUNT=3'], false],
-			[['DTSTART' => new \DateTime('2017-01-01 00:00:00'), 'DTEND' => new \DateTime('2017-01-01 00:00:00'), 'RRULE' => 'FREQ=WEEKLY;UNTIL=20170301T000000Z'], false],
-			[['DTSTART' => new \DateTime('2017-01-01 00:00:00'), 'DTEND' => new \DateTime('2017-01-01 00:00:00'), 'RRULE' => 'FREQ=WEEKLY;COUNT=33'], true],
-			[['DTSTART' => new \DateTime('2017-01-01 00:00:00'), 'DTEND' => new \DateTime('2017-01-01 00:00:00'), 'RRULE' => 'FREQ=WEEKLY;UNTIL=20171001T000000Z'], true],
+			[['DTSTART' => new DateTime('2017-01-01 00:00:00')], false],
+			[['DTSTART' => new DateTime('2017-01-01 00:00:00'), 'DTEND' => new DateTime('2017-01-01 00:00:00')], false],
+			[['DTSTART' => new DateTime('2017-01-01 00:00:00'), 'DTEND' => new DateTime('2017-12-31 00:00:00')], true],
+			[['DTSTART' => new DateTime('2017-01-01 00:00:00'), 'DURATION' => 'P1D'], false],
+			[['DTSTART' => new DateTime('2017-01-01 00:00:00'), 'DURATION' => 'P52W'], true],
+			[['DTSTART' => new DateTime('2017-01-01 00:00:00'), 'DTEND' => new DateTime('2017-01-01 00:00:00'), 'RRULE' => 'FREQ=WEEKLY'], true],
+			[['DTSTART' => new DateTime('2017-01-01 00:00:00'), 'DTEND' => new DateTime('2017-01-01 00:00:00'), 'RRULE' => 'FREQ=WEEKLY;COUNT=3'], false],
+			[['DTSTART' => new DateTime('2017-01-01 00:00:00'), 'DTEND' => new DateTime('2017-01-01 00:00:00'), 'RRULE' => 'FREQ=WEEKLY;UNTIL=20170301T000000Z'], false],
+			[['DTSTART' => new DateTime('2017-01-01 00:00:00'), 'DTEND' => new DateTime('2017-01-01 00:00:00'), 'RRULE' => 'FREQ=WEEKLY;COUNT=33'], true],
+			[['DTSTART' => new DateTime('2017-01-01 00:00:00'), 'DTEND' => new DateTime('2017-01-01 00:00:00'), 'RRULE' => 'FREQ=WEEKLY;UNTIL=20171001T000000Z'], true],
 		];
 	}
 
 	/**
 	 * @dataProvider dataIncludeResponseButtons
 	 */
-	public function testIncludeResponseButtons(string $config_setting, string $recipient, bool $has_buttons) {
+	public function testIncludeResponseButtons(string $config_setting, string $recipient, bool $has_buttons): void {
 		$message = $this->_testMessage([],$recipient);
 		$this->mailer->method('validateMailAddress')->willReturn(true);
 
@@ -251,7 +252,7 @@ class IMipPluginTest extends TestCase {
 		$this->assertEquals('1.1', $message->getScheduleStatus());
 	}
 
-	public function dataIncludeResponseButtons() {
+	public function dataIncludeResponseButtons(): array {
 		return [
 			// dav.invitation_link_recipients, recipient, $has_buttons
 			[ 'yes', 'joe@internal.com', true],
@@ -264,7 +265,7 @@ class IMipPluginTest extends TestCase {
 		];
 	}
 
-	public function testMessageSendWhenEventWithoutName() {
+	public function testMessageSendWhenEventWithoutName(): void {
 		$this->config
 			->method('getAppValue')
 			->willReturn('yes');
@@ -279,7 +280,7 @@ class IMipPluginTest extends TestCase {
 		$this->assertEquals('1.1', $message->getScheduleStatus());
 	}
 
-	private function _testMessage(array $attrs = [], string $recipient = 'frodo@hobb.it') {
+	private function _testMessage(array $attrs = [], string $recipient = 'frodo@hobb.it'): Message {
 		$message = new Message();
 		$message->method = 'REQUEST';
 		$message->message = new VCalendar();
@@ -287,7 +288,7 @@ class IMipPluginTest extends TestCase {
 			'UID' => 'uid-1234',
 			'SEQUENCE' => 0,
 			'SUMMARY' => 'Fellowship meeting',
-			'DTSTART' => new \DateTime('2018-01-01 00:00:00')
+			'DTSTART' => new DateTime('2018-01-01 00:00:00')
 		], $attrs));
 		$message->message->VEVENT->add('ORGANIZER', 'mailto:gandalf@wiz.ard');
 		$message->message->VEVENT->add('ATTENDEE', 'mailto:'.$recipient, [ 'RSVP' => 'TRUE' ]);
@@ -298,7 +299,7 @@ class IMipPluginTest extends TestCase {
 	}
 
 
-	private function _expectSend(string $recipient = 'frodo@hobb.it', bool $expectSend = true, bool $expectButtons = true, string $subject = 'Invitation: Fellowship meeting') {
+	private function _expectSend(string $recipient = 'frodo@hobb.it', bool $expectSend = true, bool $expectButtons = true, string $subject = 'Invitation: Fellowship meeting'): void {
 
 		// if the event is in the past, we skip out
 		if (!$expectSend) {

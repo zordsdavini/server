@@ -28,6 +28,8 @@ namespace OCA\DAV\Tests\unit;
 
 use OCA\DAV\Server;
 use OCP\IRequest;
+use PHPUnit\Framework\MockObject\MockObject;
+use Test\TestCase;
 
 /**
  * Class ServerTest
@@ -36,13 +38,13 @@ use OCP\IRequest;
  *
  * @package OCA\DAV\Tests\Unit
  */
-class ServerTest extends \Test\TestCase {
+class ServerTest extends TestCase {
 
 	/**
 	 * @dataProvider providesUris
 	 */
 	public function test($uri, array $plugins) {
-		/** @var IRequest | \PHPUnit\Framework\MockObject\MockObject $r */
+		/** @var IRequest | MockObject $r */
 		$r = $this->createMock(IRequest::class);
 		$r->expects($this->any())->method('getRequestUri')->willReturn($uri);
 		$s = new Server($r, '/');

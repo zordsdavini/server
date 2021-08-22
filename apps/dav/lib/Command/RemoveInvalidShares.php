@@ -78,7 +78,7 @@ class RemoveInvalidShares extends Command {
 	/**
 	 * @param string $principaluri
 	 */
-	private function deleteSharesForPrincipal($principaluri) {
+	private function deleteSharesForPrincipal(string $principaluri): void {
 		$delete = $this->connection->getQueryBuilder();
 		$delete->delete('dav_shares')
 			->where($delete->expr()->eq('principaluri', $delete->createNamedParameter($principaluri)));

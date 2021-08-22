@@ -112,7 +112,7 @@ class SyncBirthdayCalendar extends Command {
 		return 0;
 	}
 
-	protected function verifyEnabled() {
+	protected function verifyEnabled(): void {
 		$isEnabled = $this->config->getAppValue('dav', 'generateBirthdayCalendar', 'yes');
 
 		if ($isEnabled !== 'yes') {

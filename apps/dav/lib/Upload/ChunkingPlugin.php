@@ -55,7 +55,7 @@ class ChunkingPlugin extends ServerPlugin {
 	 * @throws BadRequest
 	 * @throws NotFound
 	 */
-	public function beforeMove($sourcePath, $destination) {
+	public function beforeMove(string $sourcePath, string $destination) {
 		$this->sourceNode = $this->server->tree->getNodeForPath($sourcePath);
 		if (!$this->sourceNode instanceof FutureFile) {
 			// skip handling as the source is not a chunked FutureFile
@@ -87,7 +87,7 @@ class ChunkingPlugin extends ServerPlugin {
 	 * @param string $destination destination path
 	 * @return bool|void false to stop handling, void to skip this handler
 	 */
-	public function performMove($path, $destination) {
+	public function performMove(string $path, string $destination) {
 		$fileExists = $this->server->tree->nodeExists($destination);
 		// do a move manually, skipping Sabre's default "delete" for existing nodes
 		try {
@@ -115,7 +115,7 @@ class ChunkingPlugin extends ServerPlugin {
 	/**
 	 * @throws BadRequest
 	 */
-	private function verifySize() {
+	private function verifySize(): void {
 		$expectedSize = $this->server->httpRequest->getHeader('OC-Total-Length');
 		if ($expectedSize === null) {
 			return;
@@ -124,7 +124,7 @@ class ChunkingPlugin extends ServerPlugin {
 
 		// casted to string because cast to float cause equality for non equal numbers
 		// and integer has the problem of limited size on 32 bit systems
-		if ((string)$expectedSize !== (string)$actualSize) {
+		if ($expectedSize !== (string)$actualSize) {
 			throw new BadRequest("Chunks on server do not sum up to $expectedSize but to $actualSize bytes");
 		}
 	}

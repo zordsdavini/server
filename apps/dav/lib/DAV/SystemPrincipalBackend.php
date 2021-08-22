@@ -22,6 +22,8 @@
  */
 namespace OCA\DAV\DAV;
 
+use Sabre\DAV\Exception;
+use Sabre\DAV\PropPatch;
 use Sabre\DAVACL\PrincipalBackend\AbstractBackend;
 
 class SystemPrincipalBackend extends AbstractBackend {
@@ -99,10 +101,10 @@ class SystemPrincipalBackend extends AbstractBackend {
 	 * Read the PropPatch documentation for more info and examples.
 	 *
 	 * @param string $path
-	 * @param \Sabre\DAV\PropPatch $propPatch
+	 * @param PropPatch $propPatch
 	 * @return void
 	 */
-	public function updatePrincipal($path, \Sabre\DAV\PropPatch $propPatch) {
+	public function updatePrincipal($path, PropPatch $propPatch) {
 	}
 
 	/**
@@ -148,7 +150,7 @@ class SystemPrincipalBackend extends AbstractBackend {
 		// TODO: for now the group principal has only one member, the user itself
 		$principal = $this->getPrincipalByPath($principal);
 		if (!$principal) {
-			throw new \Sabre\DAV\Exception('Principal not found');
+			throw new Exception('Principal not found');
 		}
 
 		return [$principal['uri']];
@@ -166,7 +168,7 @@ class SystemPrincipalBackend extends AbstractBackend {
 		if ($prefix === 'principals/system') {
 			$principal = $this->getPrincipalByPath($principal);
 			if (!$principal) {
-				throw new \Sabre\DAV\Exception('Principal not found');
+				throw new Exception('Principal not found');
 			}
 
 			return [];
@@ -184,6 +186,6 @@ class SystemPrincipalBackend extends AbstractBackend {
 	 * @return void
 	 */
 	public function setGroupMemberSet($principal, array $members) {
-		throw new \Sabre\DAV\Exception('Setting members of the group is not supported yet');
+		throw new Exception('Setting members of the group is not supported yet');
 	}
 }

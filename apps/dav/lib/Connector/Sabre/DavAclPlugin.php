@@ -31,6 +31,7 @@ use Sabre\CalDAV\Principal\User;
 use Sabre\DAV\Exception\NotFound;
 use Sabre\DAV\INode;
 use Sabre\DAV\PropFind;
+use Sabre\DAVACL\Plugin;
 use Sabre\HTTP\RequestInterface;
 use Sabre\HTTP\ResponseInterface;
 
@@ -42,7 +43,7 @@ use Sabre\HTTP\ResponseInterface;
  * @see https://github.com/owncloud/core/issues/22578
  * @package OCA\DAV\Connector\Sabre
  */
-class DavAclPlugin extends \Sabre\DAVACL\Plugin {
+class DavAclPlugin extends Plugin {
 	public function __construct() {
 		$this->hideNodesFromListings = true;
 		$this->allowUnauthenticatedAccess = false;

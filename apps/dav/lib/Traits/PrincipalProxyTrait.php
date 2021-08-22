@@ -41,7 +41,7 @@ trait PrincipalProxyTrait {
 	 * @return string[]
 	 * @throws Exception
 	 */
-	public function getGroupMemberSet($principal) {
+	public function getGroupMemberSet(string $principal): array {
 		$members = [];
 
 		if ($this->isProxyPrincipal($principal)) {
@@ -74,7 +74,7 @@ trait PrincipalProxyTrait {
 	 * @return array
 	 * @throws Exception
 	 */
-	public function getGroupMembership($principal, $needGroups = false) {
+	public function getGroupMembership(string $principal, bool $needGroups): array {
 		[$prefix, $name] = \Sabre\Uri\split($principal);
 
 		if ($prefix !== $this->principalPrefix) {
@@ -110,7 +110,7 @@ trait PrincipalProxyTrait {
 	 * @param string[] $members
 	 * @throws Exception
 	 */
-	public function setGroupMemberSet($principal, array $members) {
+	public function setGroupMemberSet(string $principal, array $members): void {
 		[$principalUri, $target] = \Sabre\Uri\split($principal);
 
 		if ($target !== 'calendar-proxy-write' && $target !== 'calendar-proxy-read') {
@@ -127,7 +127,6 @@ trait PrincipalProxyTrait {
 			$permission |= ProxyMapper::PERMISSION_WRITE;
 		}
 
-		[$prefix, $owner] = \Sabre\Uri\split($principalUri);
 		$proxies = $this->proxyMapper->getProxiesOf($principalUri);
 
 		foreach ($members as $member) {
@@ -149,7 +148,7 @@ trait PrincipalProxyTrait {
 					$proxy->setPermissions($proxy->getPermissions() | $permission);
 					$this->proxyMapper->update($proxy);
 
-					$proxies = array_filter($proxies, function (Proxy $p) use ($proxy) {
+					$proxies = array_filter($proxies, static function (Proxy $p) use ($proxy) {
 						return $p->getId() !== $proxy->getId();
 					});
 					break;
@@ -183,7 +182,7 @@ trait PrincipalProxyTrait {
 		[$realPrincipalUri, $proxy] = \Sabre\Uri\split($principalUri);
 		[$prefix, $userId] = \Sabre\Uri\split($realPrincipalUri);
 
-		if (!isset($prefix) || !isset($userId)) {
+		if (!isset($prefix, $userId)) {
 			return false;
 		}
 		if ($prefix !== $this->principalPrefix) {

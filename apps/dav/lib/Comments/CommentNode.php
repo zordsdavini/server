@@ -26,15 +26,17 @@ namespace OCA\DAV\Comments;
 use OCP\Comments\IComment;
 use OCP\Comments\ICommentsManager;
 use OCP\Comments\MessageTooLongException;
-use OCP\ILogger;
 use OCP\IUserManager;
 use OCP\IUserSession;
+use Psr\Log\LoggerInterface;
 use Sabre\DAV\Exception\BadRequest;
 use Sabre\DAV\Exception\Forbidden;
 use Sabre\DAV\Exception\MethodNotAllowed;
+use Sabre\DAV\INode;
+use Sabre\DAV\IProperties;
 use Sabre\DAV\PropPatch;
 
-class CommentNode implements \Sabre\DAV\INode, \Sabre\DAV\IProperties {
+class CommentNode implements INode, IProperties {
 	public const NS_OWNCLOUD = 'http://owncloud.org/ns';
 
 	public const PROPERTY_NAME_UNREAD = '{http://owncloud.org/ns}isUnread';
@@ -52,7 +54,7 @@ class CommentNode implements \Sabre\DAV\INode, \Sabre\DAV\IProperties {
 	/** @var ICommentsManager */
 	protected $commentsManager;
 
-	/** @var  ILogger */
+	/** @var LoggerInterface */
 	protected $logger;
 
 	/** @var array list of properties with key being their name and value their setter */
@@ -71,14 +73,14 @@ class CommentNode implements \Sabre\DAV\INode, \Sabre\DAV\IProperties {
 	 * @param IComment $comment
 	 * @param IUserManager $userManager
 	 * @param IUserSession $userSession
-	 * @param ILogger $logger
+	 * @param LoggerInterface $logger
 	 */
 	public function __construct(
 		ICommentsManager $commentsManager,
 		IComment $comment,
 		IUserManager $userManager,
 		IUserSession $userSession,
-		ILogger $logger
+		LoggerInterface $logger
 	) {
 		$this->commentsManager = $commentsManager;
 		$this->comment = $comment;
@@ -187,14 +189,14 @@ class CommentNode implements \Sabre\DAV\INode, \Sabre\DAV\IProperties {
 	 * @throws BadRequest
 	 * @throws \Exception
 	 */
-	public function updateComment($propertyValue) {
+	public function updateComment($propertyValue): bool {
 		$this->checkWriteAccessOnComment();
 		try {
 			$this->comment->setMessage($propertyValue);
 			$this->commentsManager->save($this->comment);
 			return true;
 		} catch (\Exception $e) {
-			$this->logger->logException($e, ['app' => 'dav/comments']);
+			$this->logger->error($e->getMessage(), ['app' => 'dav/comments', 'exception' => $e]);
 			if ($e instanceof MessageTooLongException) {
 				$msg = 'Message exceeds allowed character limit of ';
 				throw new BadRequest($msg . IComment::MAX_MESSAGE_LENGTH, 0, $e);
@@ -282,12 +284,12 @@ class CommentNode implements \Sabre\DAV\INode, \Sabre\DAV\IProperties {
 	 *
 	 * @return array
 	 */
-	protected function composeMentionsPropertyValue() {
+	protected function composeMentionsPropertyValue(): array {
 		return array_map(function ($mention) {
 			try {
 				$displayName = $this->commentsManager->resolveDisplayName($mention['type'], $mention['id']);
 			} catch (\OutOfBoundsException $e) {
-				$this->logger->logException($e);
+				$this->logger->error($e->getMessage(), ['exception' => $e]);
 				// No displayname, upon client's discretion what to display.
 				$displayName = '';
 			}

@@ -28,15 +28,17 @@ namespace OCA\DAV\Tests\unit\CardDAV;
 use OCA\DAV\CardDAV\AddressBook;
 use OCA\DAV\CardDAV\CardDavBackend;
 use OCP\IL10N;
+use PHPUnit\Framework\MockObject\MockObject;
+use Sabre\DAV\Exception\Forbidden;
 use Sabre\DAV\PropPatch;
 use Test\TestCase;
 
 class AddressBookTest extends TestCase {
-	public function testDelete() {
-		/** @var \PHPUnit\Framework\MockObject\MockObject | CardDavBackend $backend */
+	public function testDelete(): void {
+		/** @var MockObject | CardDavBackend $backend */
 		$backend = $this->getMockBuilder(CardDavBackend::class)->disableOriginalConstructor()->getMock();
 		$backend->expects($this->once())->method('updateShares');
-		$backend->expects($this->any())->method('getShares')->willReturn([
+		$backend->method('getShares')->willReturn([
 			['href' => 'principal:user2']
 		]);
 		$calendarInfo = [
@@ -52,13 +54,13 @@ class AddressBookTest extends TestCase {
 	}
 
 
-	public function testDeleteFromGroup() {
-		$this->expectException(\Sabre\DAV\Exception\Forbidden::class);
+	public function testDeleteFromGroup(): void {
+		$this->expectException(Forbidden::class);
 
-		/** @var \PHPUnit\Framework\MockObject\MockObject | CardDavBackend $backend */
+		/** @var MockObject | CardDavBackend $backend */
 		$backend = $this->getMockBuilder(CardDavBackend::class)->disableOriginalConstructor()->getMock();
 		$backend->expects($this->never())->method('updateShares');
-		$backend->expects($this->any())->method('getShares')->willReturn([
+		$backend->method('getShares')->willReturn([
 			['href' => 'principal:group2']
 		]);
 		$calendarInfo = [
@@ -74,10 +76,10 @@ class AddressBookTest extends TestCase {
 	}
 
 
-	public function testPropPatch() {
-		$this->expectException(\Sabre\DAV\Exception\Forbidden::class);
+	public function testPropPatch(): void {
+		$this->expectException(Forbidden::class);
 
-		/** @var \PHPUnit\Framework\MockObject\MockObject | CardDavBackend $backend */
+		/** @var MockObject | CardDavBackend $backend */
 		$backend = $this->getMockBuilder(CardDavBackend::class)->disableOriginalConstructor()->getMock();
 		$calendarInfo = [
 			'{http://owncloud.org/ns}owner-principal' => 'user1',
@@ -94,10 +96,10 @@ class AddressBookTest extends TestCase {
 	/**
 	 * @dataProvider providesReadOnlyInfo
 	 */
-	public function testAcl($expectsWrite, $readOnlyValue, $hasOwnerSet) {
-		/** @var \PHPUnit\Framework\MockObject\MockObject | CardDavBackend $backend */
+	public function testAcl(bool $expectsWrite, ?bool $readOnlyValue, bool $hasOwnerSet): void {
+		/** @var MockObject | CardDavBackend $backend */
 		$backend = $this->getMockBuilder(CardDavBackend::class)->disableOriginalConstructor()->getMock();
-		$backend->expects($this->any())->method('applyShareAcl')->willReturnArgument(1);
+		$backend->method('applyShareAcl')->willReturnArgument(1);
 		$calendarInfo = [
 			'{DAV:}displayname' => 'Test address book',
 			'principaluri' => 'user2',
@@ -142,7 +144,7 @@ class AddressBookTest extends TestCase {
 		$this->assertEquals($expectedAcl, $childAcl);
 	}
 
-	public function providesReadOnlyInfo() {
+	public function providesReadOnlyInfo(): array {
 		return [
 			'read-only property not set' => [true, null, true],
 			'read-only property is false' => [true, false, true],

@@ -40,11 +40,11 @@ class CleanupService {
 		$this->jobList = $jobList;
 	}
 
-	public function addJob(string $folder) {
+	public function addJob(string $folder): void {
 		$this->jobList->add(UploadCleanup::class, ['uid' => $this->userSession->getUser()->getUID(), 'folder' => $folder]);
 	}
 
-	public function removeJob(string $folder) {
+	public function removeJob(string $folder): void {
 		$this->jobList->remove(UploadCleanup::class, ['uid' => $this->userSession->getUser()->getUID(), 'folder' => $folder]);
 	}
 }

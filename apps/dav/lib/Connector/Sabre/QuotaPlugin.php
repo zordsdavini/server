@@ -30,11 +30,14 @@
  */
 namespace OCA\DAV\Connector\Sabre;
 
+use OC\Files\View;
+use OC_FileChunking;
 use OCA\DAV\Upload\FutureFile;
 use OCP\Files\StorageNotAvailableException;
 use Sabre\DAV\Exception\InsufficientStorage;
 use Sabre\DAV\Exception\ServiceUnavailable;
 use Sabre\DAV\INode;
+use Sabre\DAV\ServerPlugin;
 
 /**
  * This plugin check user quota and deny creating files when they exceeds the quota.
@@ -43,9 +46,9 @@ use Sabre\DAV\INode;
  * @copyright Copyright (C) 2012 entreCables S.L. All rights reserved.
  * @license http://code.google.com/p/sabredav/wiki/License Modified BSD License
  */
-class QuotaPlugin extends \Sabre\DAV\ServerPlugin {
+class QuotaPlugin extends ServerPlugin {
 
-	/** @var \OC\Files\View */
+	/** @var View */
 	private $view;
 
 	/**
@@ -56,9 +59,9 @@ class QuotaPlugin extends \Sabre\DAV\ServerPlugin {
 	private $server;
 
 	/**
-	 * @param \OC\Files\View $view
+	 * @param View $view
 	 */
-	public function __construct($view) {
+	public function __construct(View $view) {
 		$this->view = $view;
 	}
 
@@ -89,7 +92,7 @@ class QuotaPlugin extends \Sabre\DAV\ServerPlugin {
 	 * @param INode $parent Sabre Node
 	 * @param bool $modified modified
 	 */
-	public function beforeCreateFile($uri, $data, INode $parent, $modified) {
+	public function beforeCreateFile(string $uri, $data, INode $parent, bool $modified) {
 		if (!$parent instanceof Node) {
 			return;
 		}
@@ -105,7 +108,7 @@ class QuotaPlugin extends \Sabre\DAV\ServerPlugin {
 	 * @param resource $data data
 	 * @param bool $modified modified
 	 */
-	public function beforeWriteContent($uri, INode $node, $data, $modified) {
+	public function beforeWriteContent(string $uri, INode $node, $data, bool $modified) {
 		if (!$node instanceof Node) {
 			return;
 		}
@@ -120,7 +123,7 @@ class QuotaPlugin extends \Sabre\DAV\ServerPlugin {
 	 * @param string $source source path
 	 * @param string $destination destination path
 	 */
-	public function beforeMove($source, $destination) {
+	public function beforeMove(string $source, string $destination) {
 		$sourceNode = $this->server->tree->getNodeForPath($source);
 		if (!$sourceNode instanceof FutureFile) {
 			return;
@@ -147,7 +150,7 @@ class QuotaPlugin extends \Sabre\DAV\ServerPlugin {
 	 * @throws InsufficientStorage
 	 * @return bool
 	 */
-	public function checkQuota($path, $length = null) {
+	public function checkQuota(string $path, int $length = null): bool {
 		if ($length === null) {
 			$length = $this->getLength();
 		}
@@ -159,7 +162,7 @@ class QuotaPlugin extends \Sabre\DAV\ServerPlugin {
 			}
 			$req = $this->server->httpRequest;
 			if ($req->getHeader('OC-Chunked')) {
-				$info = \OC_FileChunking::decodeName($newName);
+				$info = OC_FileChunking::decodeName($newName);
 				$chunkHandler = $this->getFileChunking($info);
 				// subtract the already uploaded size to see whether
 				// there is still enough space for the remaining chunks
@@ -178,9 +181,9 @@ class QuotaPlugin extends \Sabre\DAV\ServerPlugin {
 		return true;
 	}
 
-	public function getFileChunking($info) {
+	public function getFileChunking($info): OC_FileChunking {
 		// FIXME: need a factory for better mocking support
-		return new \OC_FileChunking($info);
+		return new OC_FileChunking($info);
 	}
 
 	public function getLength() {
@@ -204,10 +207,9 @@ class QuotaPlugin extends \Sabre\DAV\ServerPlugin {
 	 * @return mixed
 	 * @throws ServiceUnavailable
 	 */
-	public function getFreeSpace($uri) {
+	public function getFreeSpace(string $uri) {
 		try {
-			$freeSpace = $this->view->free_space(ltrim($uri, '/'));
-			return $freeSpace;
+			return $this->view->free_space(ltrim($uri, '/'));
 		} catch (StorageNotAvailableException $e) {
 			throw new ServiceUnavailable($e->getMessage());
 		}

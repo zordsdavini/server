@@ -35,14 +35,14 @@ use Test\TestCase;
  * @package OCA\DAV\Tests\Unit\AppInfo
  */
 class ApplicationTest extends TestCase {
-	public function test() {
+	public function test(): void {
 		$app = new Application();
 		$c = $app->getContainer();
 
 		// assert service instances in the container are properly setup
-		$s = $c->query(ContactsManager::class);
+		$s = $c->get(ContactsManager::class);
 		$this->assertInstanceOf(ContactsManager::class, $s);
-		$s = $c->query(CardDavBackend::class);
+		$s = $c->get(CardDavBackend::class);
 		$this->assertInstanceOf(CardDavBackend::class, $s);
 	}
 }

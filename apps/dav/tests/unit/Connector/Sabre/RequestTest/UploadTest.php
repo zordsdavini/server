@@ -24,8 +24,10 @@
  */
 namespace OCA\DAV\Tests\unit\Connector\Sabre\RequestTest;
 
+use OCA\DAV\Connector\Sabre\Exception\FileLocked;
 use OCP\AppFramework\Http;
 use OCP\Lock\ILockingProvider;
+use OC\Files\FileInfo;
 
 /**
  * Class UploadTest
@@ -35,8 +37,8 @@ use OCP\Lock\ILockingProvider;
  * @package OCA\DAV\Tests\unit\Connector\Sabre\RequestTest
  */
 class UploadTest extends RequestTestCase {
-	public function testBasicUpload() {
-		$user = $this->getUniqueID();
+	public function testBasicUpload(): void {
+		$user = self::getUniqueID();
 		$view = $this->setupUser($user, 'pass');
 
 		$this->assertFalse($view->file_exists('foo.txt'));
@@ -47,12 +49,12 @@ class UploadTest extends RequestTestCase {
 		$this->assertEquals('asd', $view->file_get_contents('foo.txt'));
 
 		$info = $view->getFileInfo('foo.txt');
-		$this->assertInstanceOf('\OC\Files\FileInfo', $info);
+		$this->assertInstanceOf(FileInfo::class, $info);
 		$this->assertEquals(3, $info->getSize());
 	}
 
-	public function testUploadOverWrite() {
-		$user = $this->getUniqueID();
+	public function testUploadOverWrite(): void {
+		$user = self::getUniqueID();
 		$view = $this->setupUser($user, 'pass');
 
 		$view->file_put_contents('foo.txt', 'foobar');
@@ -63,12 +65,12 @@ class UploadTest extends RequestTestCase {
 		$this->assertEquals('asd', $view->file_get_contents('foo.txt'));
 
 		$info = $view->getFileInfo('foo.txt');
-		$this->assertInstanceOf('\OC\Files\FileInfo', $info);
+		$this->assertInstanceOf(FileInfo::class, $info);
 		$this->assertEquals(3, $info->getSize());
 	}
 
-	public function testUploadOverWriteReadLocked() {
-		$user = $this->getUniqueID();
+	public function testUploadOverWriteReadLocked(): void {
+		$user = self::getUniqueID();
 		$view = $this->setupUser($user, 'pass');
 
 		$view->file_put_contents('foo.txt', 'bar');
@@ -79,10 +81,10 @@ class UploadTest extends RequestTestCase {
 		$this->assertEquals(Http::STATUS_LOCKED, $result->getStatus());
 	}
 
-	public function testUploadOverWriteWriteLocked() {
-		$user = $this->getUniqueID();
+	public function testUploadOverWriteWriteLocked(): void {
+		$user = self::getUniqueID();
 		$view = $this->setupUser($user, 'pass');
-		$this->loginAsUser($user);
+		self::loginAsUser($user);
 
 		$view->file_put_contents('foo.txt', 'bar');
 
@@ -92,8 +94,8 @@ class UploadTest extends RequestTestCase {
 		$this->assertEquals(Http::STATUS_LOCKED, $result->getStatus());
 	}
 
-	public function testChunkedUpload() {
-		$user = $this->getUniqueID();
+	public function testChunkedUpload(): void {
+		$user = self::getUniqueID();
 		$view = $this->setupUser($user, 'pass');
 
 		$this->assertFalse($view->file_exists('foo.txt'));
@@ -110,12 +112,12 @@ class UploadTest extends RequestTestCase {
 		$this->assertEquals('asdbar', $view->file_get_contents('foo.txt'));
 
 		$info = $view->getFileInfo('foo.txt');
-		$this->assertInstanceOf('\OC\Files\FileInfo', $info);
+		$this->assertInstanceOf(FileInfo::class, $info);
 		$this->assertEquals(6, $info->getSize());
 	}
 
-	public function testChunkedUploadOverWrite() {
-		$user = $this->getUniqueID();
+	public function testChunkedUploadOverWrite(): void {
+		$user = self::getUniqueID();
 		$view = $this->setupUser($user, 'pass');
 
 		$view->file_put_contents('foo.txt', 'bar');
@@ -131,12 +133,12 @@ class UploadTest extends RequestTestCase {
 		$this->assertEquals('asdbar', $view->file_get_contents('foo.txt'));
 
 		$info = $view->getFileInfo('foo.txt');
-		$this->assertInstanceOf('\OC\Files\FileInfo', $info);
+		$this->assertInstanceOf(FileInfo::class, $info);
 		$this->assertEquals(6, $info->getSize());
 	}
 
-	public function testChunkedUploadOutOfOrder() {
-		$user = $this->getUniqueID();
+	public function testChunkedUploadOutOfOrder(): void {
+		$user = self::getUniqueID();
 		$view = $this->setupUser($user, 'pass');
 
 		$this->assertFalse($view->file_exists('foo.txt'));
@@ -153,12 +155,12 @@ class UploadTest extends RequestTestCase {
 		$this->assertEquals('asdbar', $view->file_get_contents('foo.txt'));
 
 		$info = $view->getFileInfo('foo.txt');
-		$this->assertInstanceOf('\OC\Files\FileInfo', $info);
+		$this->assertInstanceOf(FileInfo::class, $info);
 		$this->assertEquals(6, $info->getSize());
 	}
 
-	public function testChunkedUploadOutOfOrderReadLocked() {
-		$user = $this->getUniqueID();
+	public function testChunkedUploadOutOfOrderReadLocked(): void {
+		$user = self::getUniqueID();
 		$view = $this->setupUser($user, 'pass');
 
 		$this->assertFalse($view->file_exists('foo.txt'));
@@ -167,7 +169,7 @@ class UploadTest extends RequestTestCase {
 
 		try {
 			$response = $this->request($view, $user, 'pass', 'PUT', '/foo.txt-chunking-123-2-1', 'bar', ['OC-Chunked' => '1']);
-		} catch (\OCA\DAV\Connector\Sabre\Exception\FileLocked $e) {
+		} catch (FileLocked $e) {
 			$this->fail('Didn\'t expect locked error for the first chunk on read lock');
 			return;
 		}
@@ -180,8 +182,8 @@ class UploadTest extends RequestTestCase {
 		$this->assertEquals(Http::STATUS_LOCKED, $result->getStatus());
 	}
 
-	public function testChunkedUploadOutOfOrderWriteLocked() {
-		$user = $this->getUniqueID();
+	public function testChunkedUploadOutOfOrderWriteLocked(): void {
+		$user = self::getUniqueID();
 		$view = $this->setupUser($user, 'pass');
 
 		$this->assertFalse($view->file_exists('foo.txt'));
@@ -190,7 +192,7 @@ class UploadTest extends RequestTestCase {
 
 		try {
 			$response = $this->request($view, $user, 'pass', 'PUT', '/foo.txt-chunking-123-2-1', 'bar', ['OC-Chunked' => '1']);
-		} catch (\OCA\DAV\Connector\Sabre\Exception\FileLocked $e) {
+		} catch (FileLocked $e) {
 			$this->fail('Didn\'t expect locked error for the first chunk on write lock'); // maybe forbid this in the future for write locks only?
 			return;
 		}

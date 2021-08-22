@@ -59,10 +59,12 @@ use OCP\Files\NotFoundException;
 use OCP\Files\NotPermittedException;
 use OCP\Files\Storage;
 use OCP\Files\StorageNotAvailableException;
-use OCP\ILogger;
+use OCP\IConfig;
+use OCP\IRequest;
 use OCP\Lock\ILockingProvider;
 use OCP\Lock\LockedException;
 use OCP\Share\IManager;
+use Psr\Log\LoggerInterface;
 use Sabre\DAV\Exception;
 use Sabre\DAV\Exception\BadRequest;
 use Sabre\DAV\Exception\Forbidden;
@@ -77,10 +79,10 @@ class File extends Node implements IFile {
 	/**
 	 * Sets up the node, expects a full path name
 	 *
-	 * @param \OC\Files\View $view
-	 * @param \OCP\Files\FileInfo $info
-	 * @param \OCP\Share\IManager $shareManager
-	 * @param \OC\AppFramework\Http\Request $request
+	 * @param View $view
+	 * @param FileInfo $info
+	 * @param IManager|null $shareManager
+	 * @param Request|null $request
 	 */
 	public function __construct(View $view, FileInfo $info, IManager $shareManager = null, Request $request = null) {
 		parent::__construct($view, $info, $shareManager);
@@ -88,7 +90,7 @@ class File extends Node implements IFile {
 		if (isset($request)) {
 			$this->request = $request;
 		} else {
-			$this->request = \OC::$server->getRequest();
+			$this->request = \OC::$server->get(IRequest::class);
 		}
 	}
 
@@ -146,7 +148,7 @@ class File extends Node implements IFile {
 		[$partStorage] = $this->fileView->resolvePath($this->path);
 		$needsPartFile = $partStorage->needsPartFile() && (strlen($this->path) > 1);
 
-		$view = \OC\Files\Filesystem::getView();
+		$view = Filesystem::getView();
 
 		if ($needsPartFile) {
 			// mark file as partial while uploading (ignored by the scanner)
@@ -218,7 +220,7 @@ class File extends Node implements IFile {
 			} else {
 				$target = $partStorage->fopen($internalPartPath, 'wb');
 				if ($target === false) {
-					\OC::$server->getLogger()->error('\OC\Files\Filesystem::fopen() failed', ['app' => 'webdav']);
+					\OC::$server->get(LoggerInterface::class)->error('\OC\Files\Filesystem::fopen() failed', ['app' => 'webdav']);
 					// because we have no clue about the cause we can only throw back a 500/Internal Server Error
 					throw new Exception('Could not write file contents');
 				}
@@ -246,13 +248,13 @@ class File extends Node implements IFile {
 				}
 			}
 		} catch (\Exception $e) {
-			$context = [];
+			$logger = \OC::$server->get(LoggerInterface::class);
 
 			if ($e instanceof LockedException) {
-				$context['level'] = ILogger::DEBUG;
+				$logger->debug($e->getMessage(), ['exception' => $e]);
 			}
 
-			\OC::$server->getLogger()->logException($e, $context);
+			$logger->error($e->getMessage(), ['exception' => $e]);
 			if ($needsPartFile) {
 				$partStorage->unlink($internalPartPath);
 			}
@@ -279,9 +281,7 @@ class File extends Node implements IFile {
 					try {
 						$this->acquireLock(ILockingProvider::LOCK_EXCLUSIVE);
 					} catch (LockedException $ex) {
-						if ($needsPartFile) {
-							$partStorage->unlink($internalPartPath);
-						}
+						$partStorage->unlink($internalPartPath);
 						throw new FileLocked($e->getMessage(), $e->getCode(), $e);
 					}
 				}
@@ -291,7 +291,7 @@ class File extends Node implements IFile {
 					$renameOkay = $storage->moveFromStorage($partStorage, $internalPartPath, $internalPath);
 					$fileExists = $storage->file_exists($internalPath);
 					if ($renameOkay === false || $fileExists === false) {
-						\OC::$server->getLogger()->error('renaming part file to final file failed $renameOkay: ' . ($renameOkay ? 'true' : 'false') . ', $fileExists: ' . ($fileExists ? 'true' : 'false') . ')', ['app' => 'webdav']);
+						\OC::$server->get(LoggerInterface::class)->error('renaming part file to final file failed $renameOkay: ' . ($renameOkay ? 'true' : 'false') . ', $fileExists: ' . ($fileExists ? 'true' : 'false') . ')', ['app' => 'webdav']);
 						throw new Exception('Could not rename part file to final file');
 					}
 				} catch (ForbiddenException $ex) {
@@ -356,19 +356,23 @@ class File extends Node implements IFile {
 		return '"' . $this->info->getEtag() . '"';
 	}
 
-	private function getPartFileBasePath($path) {
-		$partFileInStorage = \OC::$server->getConfig()->getSystemValue('part_file_in_storage', true);
+	private function getPartFileBasePath(string $path): string {
+		$partFileInStorage = \OC::$server->get(IConfig::class)->getSystemValue('part_file_in_storage', true);
 		if ($partFileInStorage) {
 			return $path;
-		} else {
-			return md5($path); // will place it in the root of the view with a unique name
 		}
+
+		return md5($path); // will place it in the root of the view with a unique name
 	}
 
 	/**
-	 * @param string $path
+	 * @param bool $exists
+	 * @param string|null $path
+	 * @return bool
+	 * @throws \OCP\HintException
+	 * @throws \OC\ServerNotAvailableException
 	 */
-	private function emitPreHooks($exists, $path = null) {
+	private function emitPreHooks(bool $exists, ?string $path = null): bool {
 		if (is_null($path)) {
 			$path = $this->path;
 		}
@@ -376,42 +380,42 @@ class File extends Node implements IFile {
 		$run = true;
 
 		if (!$exists) {
-			\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_create, [
-				\OC\Files\Filesystem::signal_param_path => $hookPath,
-				\OC\Files\Filesystem::signal_param_run => &$run,
+			\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_create, [
+				Filesystem::signal_param_path => $hookPath,
+				Filesystem::signal_param_run => &$run,
 			]);
 		} else {
-			\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_update, [
-				\OC\Files\Filesystem::signal_param_path => $hookPath,
-				\OC\Files\Filesystem::signal_param_run => &$run,
+			\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_update, [
+				Filesystem::signal_param_path => $hookPath,
+				Filesystem::signal_param_run => &$run,
 			]);
 		}
-		\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_write, [
-			\OC\Files\Filesystem::signal_param_path => $hookPath,
-			\OC\Files\Filesystem::signal_param_run => &$run,
+		\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_write, [
+			Filesystem::signal_param_path => $hookPath,
+			Filesystem::signal_param_run => &$run,
 		]);
 		return $run;
 	}
 
 	/**
-	 * @param string $path
+	 * @param string|null $path
 	 */
-	private function emitPostHooks($exists, $path = null) {
+	private function emitPostHooks(bool $exists, string $path = null): void {
 		if (is_null($path)) {
 			$path = $this->path;
 		}
 		$hookPath = Filesystem::getView()->getRelativePath($this->fileView->getAbsolutePath($path));
 		if (!$exists) {
-			\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_post_create, [
-				\OC\Files\Filesystem::signal_param_path => $hookPath
+			\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_post_create, [
+				Filesystem::signal_param_path => $hookPath
 			]);
 		} else {
-			\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_post_update, [
-				\OC\Files\Filesystem::signal_param_path => $hookPath
+			\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_post_update, [
+				Filesystem::signal_param_path => $hookPath
 			]);
 		}
-		\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_post_write, [
-			\OC\Files\Filesystem::signal_param_path => $hookPath
+		\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_post_write, [
+			Filesystem::signal_param_path => $hookPath
 		]);
 	}
 
@@ -571,7 +575,7 @@ class File extends Node implements IFile {
 					$renameOkay = $targetStorage->moveFromStorage($partStorage, $partInternalPath, $targetInternalPath);
 					$fileExists = $targetStorage->file_exists($targetInternalPath);
 					if ($renameOkay === false || $fileExists === false) {
-						\OC::$server->getLogger()->error('\OC\Files\Filesystem::rename() failed', ['app' => 'webdav']);
+						\OC::$server->get(LoggerInterface::class)->error('\OC\Files\Filesystem::rename() failed', ['app' => 'webdav']);
 						// only delete if an error occurred and the target file was already created
 						if ($fileExists) {
 							// set to null to avoid double-deletion when handling exception

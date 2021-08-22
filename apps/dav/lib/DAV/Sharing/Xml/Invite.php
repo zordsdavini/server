@@ -84,6 +84,7 @@ class Invite implements XmlSerializable {
 	 * valid answer is that the current spec is still a draft.
 	 *
 	 * @param array $users
+	 * @param array|null $organizer
 	 */
 	public function __construct(array $users, array $organizer = null) {
 		$this->users = $users;
@@ -95,7 +96,7 @@ class Invite implements XmlSerializable {
 	 *
 	 * @return array
 	 */
-	public function getValue() {
+	public function getValue(): array {
 		return $this->users;
 	}
 

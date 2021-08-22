@@ -31,39 +31,39 @@ class LazySearchBackend implements ISearchBackend {
 	 */
 	private $backend = null;
 
-	public function setBackend(ISearchBackend $backend) {
+	public function setBackend(ISearchBackend $backend): void {
 		$this->backend = $backend;
 	}
 
 	public function getArbiterPath() {
 		if ($this->backend) {
 			return $this->backend->getArbiterPath();
-		} else {
-			return '';
 		}
+
+		return '';
 	}
 
 	public function isValidScope($href, $depth, $path) {
 		if ($this->backend) {
 			return $this->backend->getArbiterPath();
-		} else {
-			return false;
 		}
+
+		return false;
 	}
 
 	public function getPropertyDefinitionsForScope($href, $path) {
 		if ($this->backend) {
 			return $this->backend->getPropertyDefinitionsForScope($href, $path);
-		} else {
-			return [];
 		}
+
+		return [];
 	}
 
 	public function search(Query $query) {
 		if ($this->backend) {
 			return $this->backend->search($query);
-		} else {
-			return [];
 		}
+
+		return [];
 	}
 }

@@ -35,6 +35,7 @@ use OCP\Calendar\Resource\IBackend;
 use OCP\Calendar\Resource\IManager as IResourceManager;
 use OCP\Calendar\Resource\IResource;
 use OCP\Calendar\Room\IManager as IRoomManager;
+use PHPUnit\Framework\MockObject\MockObject;
 use Test\TestCase;
 
 interface tmpI extends IResource, IMetadataProvider {
@@ -45,25 +46,19 @@ class UpdateCalendarResourcesRoomsBackgroundJobTest extends TestCase {
 	/** @var UpdateCalendarResourcesRoomsBackgroundJob */
 	private $backgroundJob;
 
-	/** @var IResourceManager | \PHPUnit\Framework\MockObject\MockObject */
+	/** @var IResourceManager | MockObject */
 	private $resourceManager;
-
-	/** @var IRoomManager | \PHPUnit\Framework\MockObject\MockObject */
-	private $roomManager;
-
-	/** @var CalDavBackend | \PHPUnit\Framework\MockObject\MockObject */
-	private $calDavBackend;
 
 	protected function setUp(): void {
 		parent::setUp();
 
 		$this->resourceManager = $this->createMock(IResourceManager::class);
-		$this->roomManager = $this->createMock(IRoomManager::class);
-		$this->calDavBackend = $this->createMock(CalDavBackend::class);
+		$roomManager = $this->createMock(IRoomManager::class);
+		$calDavBackend = $this->createMock(CalDavBackend::class);
 
 		$this->backgroundJob = new UpdateCalendarResourcesRoomsBackgroundJob(
-			$this->resourceManager, $this->roomManager, self::$realDatabase,
-			$this->calDavBackend);
+			$this->resourceManager, $roomManager, self::$realDatabase,
+			$calDavBackend);
 	}
 
 	protected function tearDown(): void {
@@ -103,7 +98,7 @@ class UpdateCalendarResourcesRoomsBackgroundJobTest extends TestCase {
 	 *  [backend4, res9, Beamer2, {}] - []
 	 */
 
-	public function testRun() {
+	public function testRun(): void {
 		$this->createTestResourcesInCache();
 
 		$backend2 = $this->createMock(IBackend::class);
@@ -340,7 +335,7 @@ class UpdateCalendarResourcesRoomsBackgroundJobTest extends TestCase {
 		], $rows2);
 	}
 
-	protected function createTestResourcesInCache() {
+	protected function createTestResourcesInCache(): void {
 		$query = self::$realDatabase->getQueryBuilder();
 		$query->insert('calendar_resources')
 			->values([

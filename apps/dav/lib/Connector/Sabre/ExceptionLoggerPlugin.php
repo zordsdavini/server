@@ -30,7 +30,7 @@ namespace OCA\DAV\Connector\Sabre;
 use OCA\DAV\Connector\Sabre\Exception\FileLocked;
 use OCA\DAV\Connector\Sabre\Exception\PasswordLoginForbidden;
 use OCP\Files\StorageNotAvailableException;
-use OCP\ILogger;
+use Psr\Log\LoggerInterface;
 use Sabre\DAV\Exception\BadRequest;
 use Sabre\DAV\Exception\Conflict;
 use Sabre\DAV\Exception\Forbidden;
@@ -42,8 +42,9 @@ use Sabre\DAV\Exception\NotImplemented;
 use Sabre\DAV\Exception\PreconditionFailed;
 use Sabre\DAV\Exception\RequestedRangeNotSatisfiable;
 use Sabre\DAV\Exception\ServiceUnavailable;
+use Sabre\DAV\ServerPlugin;
 
-class ExceptionLoggerPlugin extends \Sabre\DAV\ServerPlugin {
+class ExceptionLoggerPlugin extends ServerPlugin {
 	protected $nonFatalExceptions = [
 		NotAuthenticated::class => true,
 		// If tokenauth can throw this exception (which is basically as
@@ -86,14 +87,14 @@ class ExceptionLoggerPlugin extends \Sabre\DAV\ServerPlugin {
 	/** @var string */
 	private $appName;
 
-	/** @var ILogger */
+	/** @var LoggerInterface */
 	private $logger;
 
 	/**
 	 * @param string $loggerAppName app name to use when logging
-	 * @param ILogger $logger
+	 * @param LoggerInterface|null $logger
 	 */
-	public function __construct($loggerAppName, $logger) {
+	public function __construct(string $loggerAppName, ?LoggerInterface $logger) {
 		$this->appName = $loggerAppName;
 		$this->logger = $logger;
 	}
@@ -117,21 +118,20 @@ class ExceptionLoggerPlugin extends \Sabre\DAV\ServerPlugin {
 	 * Log exception
 	 *
 	 */
-	public function logException(\Throwable $ex) {
+	public function logException(\Throwable $ex): void {
+		if (!$this->logger) {
+			return;
+		}
 		$exceptionClass = get_class($ex);
-		$level = ILogger::FATAL;
 		if (isset($this->nonFatalExceptions[$exceptionClass]) ||
 			(
 				$exceptionClass === ServiceUnavailable::class &&
 				$ex->getMessage() === 'System in maintenance mode.'
 			)
 		) {
-			$level = ILogger::DEBUG;
+			$this->logger->debug($ex->getMessage(), ['app' => $this->appName, 'exception' => $ex]);
+		} else {
+			$this->logger->critical($ex->getMessage(), ['app' => $this->appName, 'exception' => $ex]);
 		}
-
-		$this->logger->logException($ex, [
-			'app' => $this->appName,
-			'level' => $level,
-		]);
 	}
 }

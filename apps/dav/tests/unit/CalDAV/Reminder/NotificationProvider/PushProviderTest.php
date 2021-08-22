@@ -33,34 +33,35 @@ use OCA\DAV\CalDAV\Reminder\NotificationProvider\PushProvider;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IConfig;
 use OCP\IL10N;
-use OCP\ILogger;
 use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\L10N\IFactory as L10NFactory;
 use OCP\Notification\IManager;
 use OCP\Notification\INotification;
+use PHPUnit\Framework\MockObject\MockObject;
+use Psr\Log\LoggerInterface;
 
 class PushProviderTest extends AbstractNotificationProviderTest {
 
-	/** @var ILogger|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var LoggerInterface|MockObject */
 	protected $logger;
 
-	/** @var L10NFactory|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var L10NFactory|MockObject */
 	protected $l10nFactory;
 
-	/** @var IL10N|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IL10N|MockObject */
 	protected $l10n;
 
-	/** @var IURLGenerator|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IURLGenerator|MockObject */
 	protected $urlGenerator;
 
-	/** @var IConfig|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IConfig|MockObject */
 	protected $config;
 
-	/** @var IManager|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IManager|MockObject */
 	private $manager;
 
-	/** @var ITimeFactory|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var ITimeFactory|MockObject */
 	private $timeFactory;
 
 	protected function setUp(): void {

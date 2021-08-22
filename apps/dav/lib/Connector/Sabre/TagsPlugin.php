@@ -50,10 +50,15 @@ namespace OCA\DAV\Connector\Sabre;
  *
  */
 
+use OCP\ITagManager;
+use OCP\ITags;
+use Sabre\DAV\INode;
 use Sabre\DAV\PropFind;
 use Sabre\DAV\PropPatch;
+use Sabre\DAV\ServerPlugin;
+use Sabre\DAV\Tree;
 
-class TagsPlugin extends \Sabre\DAV\ServerPlugin {
+class TagsPlugin extends ServerPlugin {
 
 	// namespace
 	public const NS_OWNCLOUD = 'http://owncloud.org/ns';
@@ -69,12 +74,12 @@ class TagsPlugin extends \Sabre\DAV\ServerPlugin {
 	private $server;
 
 	/**
-	 * @var \OCP\ITagManager
+	 * @var ITagManager
 	 */
 	private $tagManager;
 
 	/**
-	 * @var \OCP\ITags
+	 * @var ITags
 	 */
 	private $tagger;
 
@@ -87,18 +92,17 @@ class TagsPlugin extends \Sabre\DAV\ServerPlugin {
 	private $cachedTags;
 
 	/**
-	 * @var \Sabre\DAV\Tree
+	 * @var Tree
 	 */
 	private $tree;
 
 	/**
-	 * @param \Sabre\DAV\Tree $tree tree
-	 * @param \OCP\ITagManager $tagManager tag manager
+	 * @param Tree $tree tree
+	 * @param ITagManager $tagManager tag manager
 	 */
-	public function __construct(\Sabre\DAV\Tree $tree, \OCP\ITagManager $tagManager) {
+	public function __construct(Tree $tree, ITagManager $tagManager) {
 		$this->tree = $tree;
 		$this->tagManager = $tagManager;
-		$this->tagger = null;
 		$this->cachedTags = [];
 	}
 
@@ -125,9 +129,9 @@ class TagsPlugin extends \Sabre\DAV\ServerPlugin {
 	/**
 	 * Returns the tagger
 	 *
-	 * @return \OCP\ITags tagger
+	 * @return ITags tagger
 	 */
-	private function getTagger() {
+	private function getTagger(): ITags {
 		if (!$this->tagger) {
 			$this->tagger = $this->tagManager->load('files');
 		}
@@ -141,11 +145,11 @@ class TagsPlugin extends \Sabre\DAV\ServerPlugin {
 	 * @return array list($tags, $favorite) with $tags as tag array
 	 * and $favorite is a boolean whether the file was favorited
 	 */
-	private function getTagsAndFav($fileId) {
+	private function getTagsAndFav(int $fileId): array {
 		$isFav = false;
 		$tags = $this->getTags($fileId);
 		if ($tags) {
-			$favPos = array_search(self::TAG_FAVORITE, $tags);
+			$favPos = array_search(self::TAG_FAVORITE, $tags, true);
 			if ($favPos !== false) {
 				$isFav = true;
 				unset($tags[$favPos]);
@@ -160,17 +164,17 @@ class TagsPlugin extends \Sabre\DAV\ServerPlugin {
 	 * @param integer $fileId file id
 	 * @return array list of tags for that file
 	 */
-	private function getTags($fileId) {
+	private function getTags(int $fileId): ?array {
 		if (isset($this->cachedTags[$fileId])) {
 			return $this->cachedTags[$fileId];
-		} else {
-			$tags = $this->getTagger()->getTagsForObjects([$fileId]);
-			if ($tags !== false) {
-				if (empty($tags)) {
-					return [];
-				}
-				return current($tags);
+		}
+
+		$tags = $this->getTagger()->getTagsForObjects([$fileId]);
+		if ($tags !== false) {
+			if (empty($tags)) {
+				return [];
 			}
+			return current($tags);
 		}
 		return null;
 	}
@@ -181,7 +185,7 @@ class TagsPlugin extends \Sabre\DAV\ServerPlugin {
 	 * @param int $fileId
 	 * @param array $tags array of tag strings
 	 */
-	private function updateTags($fileId, $tags) {
+	private function updateTags(int $fileId, array $tags): void {
 		$tagger = $this->getTagger();
 		$currentTags = $this->getTags($fileId);
 
@@ -206,19 +210,19 @@ class TagsPlugin extends \Sabre\DAV\ServerPlugin {
 	 * if requested.
 	 *
 	 * @param PropFind $propFind
-	 * @param \Sabre\DAV\INode $node
+	 * @param INode $node
 	 * @return void
 	 */
 	public function handleGetProperties(
 		PropFind $propFind,
-		\Sabre\DAV\INode $node
+		INode $node
 	) {
-		if (!($node instanceof \OCA\DAV\Connector\Sabre\Node)) {
+		if (!($node instanceof Node)) {
 			return;
 		}
 
 		// need prefetch ?
-		if ($node instanceof \OCA\DAV\Connector\Sabre\Directory
+		if ($node instanceof Directory
 			&& $propFind->getDepth() !== 0
 			&& (!is_null($propFind->getStatus(self::TAGS_PROPERTYNAME))
 			|| !is_null($propFind->getStatus(self::FAVORITE_PROPERTYNAME))
@@ -256,9 +260,9 @@ class TagsPlugin extends \Sabre\DAV\ServerPlugin {
 			}
 			if ($isFav) {
 				return 1;
-			} else {
-				return 0;
 			}
+
+			return 0;
 		});
 	}
 
@@ -270,9 +274,9 @@ class TagsPlugin extends \Sabre\DAV\ServerPlugin {
 	 *
 	 * @return void
 	 */
-	public function handleUpdateProperties($path, PropPatch $propPatch) {
+	public function handleUpdateProperties(string $path, PropPatch $propPatch): void {
 		$node = $this->tree->getNodeForPath($path);
-		if (!($node instanceof \OCA\DAV\Connector\Sabre\Node)) {
+		if (!($node instanceof Node)) {
 			return;
 		}
 

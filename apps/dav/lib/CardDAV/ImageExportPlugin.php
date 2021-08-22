@@ -65,7 +65,7 @@ class ImageExportPlugin extends ServerPlugin {
 	 * @param ResponseInterface $response
 	 * @return bool
 	 */
-	public function httpGet(RequestInterface $request, ResponseInterface $response) {
+	public function httpGet(RequestInterface $request, ResponseInterface $response): bool {
 		$queryParams = $request->getQueryParameters();
 		// TODO: in addition to photo we should also add logo some point in time
 		if (!array_key_exists('photo', $queryParams)) {

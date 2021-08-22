@@ -29,6 +29,7 @@ declare(strict_types=1);
  */
 namespace OCA\DAV\Tests\unit\CalDAV\Reminder;
 
+use DateTimeInterface;
 use OCA\DAV\AppInfo\Application;
 use OCA\DAV\CalDAV\Reminder\Notifier;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -73,7 +74,7 @@ class NotifierTest extends TestCase {
 			->method('l')
 			->willReturnCallback(function ($string, $args) {
 				/** \DateTime $args */
-				return $args->format(\DateTime::ATOM);
+				return $args->format(DateTimeInterface::ATOM);
 			});
 		$this->l10n->expects($this->any())
 			->method('n')
@@ -90,7 +91,7 @@ class NotifierTest extends TestCase {
 		$this->timeFactory = $this->createMock(ITimeFactory::class);
 		$this->timeFactory
 			->method('getDateTime')
-			->willReturn(\DateTime::createFromFormat(\DateTime::ATOM, '2005-08-15T14:00:00+02:00'));
+			->willReturn(\DateTime::createFromFormat(DateTimeInterface::ATOM, '2005-08-15T14:00:00+02:00'));
 
 		$this->notifier = new Notifier(
 			$this->factory,
@@ -100,11 +101,11 @@ class NotifierTest extends TestCase {
 	}
 
 	public function testGetId():void {
-		$this->assertEquals($this->notifier->getID(), 'dav');
+		$this->assertEquals('dav', $this->notifier->getID());
 	}
 
 	public function testGetName():void {
-		$this->assertEquals($this->notifier->getName(), 'Calendar');
+		$this->assertEquals('Calendar', $this->notifier->getName());
 	}
 
 
@@ -125,7 +126,7 @@ class NotifierTest extends TestCase {
 	}
 
 
-	public function testPrepareWrongSubject() {
+	public function testPrepareWrongSubject(): void {
 		$this->expectException(\InvalidArgumentException::class);
 		$this->expectExceptionMessage('Unknown subject');
 

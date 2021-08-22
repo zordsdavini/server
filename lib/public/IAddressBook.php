@@ -42,7 +42,7 @@ namespace OCP {
 		 * @return string defining the technical unique key
 		 * @since 5.0.0
 		 */
-		public function getKey();
+		public function getKey(): string;
 
 		/**
 		 * @return string defining the unique uri
@@ -56,7 +56,7 @@ namespace OCP {
 		 * @return mixed
 		 * @since 5.0.0
 		 */
-		public function getDisplayName();
+		public function getDisplayName(): ?string;
 
 		/**
 		 * @param string $pattern which should match within the $searchProperties
@@ -75,14 +75,14 @@ namespace OCP {
 		 *	]
 		 * @since 5.0.0
 		 */
-		public function search($pattern, $searchProperties, $options);
+		public function search(string $pattern, array $searchProperties, array $options): array;
 
 		/**
 		 * @param array $properties this array if key-value-pairs defines a contact
 		 * @return array an array representing the contact just created or updated
 		 * @since 5.0.0
 		 */
-		public function createOrUpdate($properties);
+		public function createOrUpdate(array $properties): array;
 		//	// dummy
 		//	return array('id'    => 0, 'FN' => 'Thomas Müller', 'EMAIL' => 'a@b.c',
 		//		     'PHOTO' => 'VALUE=uri:http://www.abc.com/pub/photos/jqpublic.gif',
@@ -96,11 +96,11 @@ namespace OCP {
 		public function getPermissions();
 
 		/**
-		 * @param object $id the unique identifier to a contact
+		 * @param int $id the unique identifier to a contact
 		 * @return bool successful or not
 		 * @since 5.0.0
 		 */
-		public function delete($id);
+		public function delete(int $id): bool;
 
 		/**
 		 * Returns true if this address-book is not owned by the current user,

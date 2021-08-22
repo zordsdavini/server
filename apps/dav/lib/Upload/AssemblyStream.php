@@ -73,11 +73,11 @@ class AssemblyStream implements \Icewind\Streams\File {
 		$this->loadContext('assembly');
 
 		$nodes = $this->nodes;
-		usort($nodes, function (IFile $a, IFile $b) {
+		usort($nodes, static function (IFile $a, IFile $b) {
 			return strnatcmp($a->getName(), $b->getName());
 		});
 		$this->nodes = array_values($nodes);
-		$this->size = array_reduce($this->nodes, function ($size, IFile $file) {
+		$this->size = array_reduce($this->nodes, static function ($size, IFile $file) {
 			return $size + $file->getSize();
 		}, 0);
 
@@ -89,7 +89,7 @@ class AssemblyStream implements \Icewind\Streams\File {
 	 * @param int $whence
 	 * @return bool
 	 */
-	public function stream_seek($offset, $whence = SEEK_SET) {
+	public function stream_seek($offset, $whence = SEEK_SET): bool {
 		if ($whence === SEEK_CUR) {
 			$offset = $this->stream_tell() + $offset;
 		} elseif ($whence === SEEK_END) {

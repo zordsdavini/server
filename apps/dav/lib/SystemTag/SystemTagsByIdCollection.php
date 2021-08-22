@@ -73,7 +73,7 @@ class SystemTagsByIdCollection implements ICollection {
 	 *
 	 * @return bool true if the user is an admin
 	 */
-	private function isAdmin() {
+	private function isAdmin(): bool {
 		$user = $this->userSession->getUser();
 		if ($user !== null) {
 			return $this->groupManager->isAdmin($user->getUID());
@@ -173,7 +173,7 @@ class SystemTagsByIdCollection implements ICollection {
 	 *
 	 * @return SystemTagNode
 	 */
-	private function makeNode(ISystemTag $tag) {
+	private function makeNode(ISystemTag $tag): SystemTagNode {
 		return new SystemTagNode($tag, $this->userSession->getUser(), $this->isAdmin(), $this->tagManager);
 	}
 }

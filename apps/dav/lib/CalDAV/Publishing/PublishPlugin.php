@@ -46,7 +46,7 @@ class PublishPlugin extends ServerPlugin {
 	/**
 	 * Reference to SabreDAV server object.
 	 *
-	 * @var \Sabre\DAV\Server
+	 * @var Server
 	 */
 	protected $server;
 
@@ -117,7 +117,7 @@ class PublishPlugin extends ServerPlugin {
 		$this->server->on('propFind',    [$this, 'propFind']);
 	}
 
-	public function propFind(PropFind $propFind, INode $node) {
+	public function propFind(PropFind $propFind, INode $node): void {
 		if ($node instanceof Calendar) {
 			$propFind->handle('{'.self::NS_CALENDARSERVER.'}publish-url', function () use ($node) {
 				if ($node->getPublishStatus()) {

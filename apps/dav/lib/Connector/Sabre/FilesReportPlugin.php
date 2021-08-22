@@ -28,6 +28,7 @@
 namespace OCA\DAV\Connector\Sabre;
 
 use OC\Files\View;
+use OCA\Circles\Api\v1\Circles;
 use OCP\App\IAppManager;
 use OCP\Files\Folder;
 use OCP\IGroupManager;
@@ -179,7 +180,7 @@ class FilesReportPlugin extends ServerPlugin {
 	 * @throws PreconditionFailed
 	 * @internal param $ [] $report
 	 */
-	public function onReport($reportName, $report, $uri) {
+	public function onReport(string $reportName, $report, string $uri) {
 		$reportTargetNode = $this->server->tree->getNodeForPath($uri);
 		if (!$reportTargetNode instanceof Directory || $reportName !== self::REPORT_NAME) {
 			return;
@@ -241,7 +242,7 @@ class FilesReportPlugin extends ServerPlugin {
 	 *
 	 * @return string files base uri
 	 */
-	private function getFilesBaseUri($uri, $subPath) {
+	private function getFilesBaseUri(string $uri, string $subPath): string {
 		$uri = trim($uri, '/');
 		$subPath = trim($subPath, '/');
 		if (empty($subPath)) {
@@ -264,7 +265,7 @@ class FilesReportPlugin extends ServerPlugin {
 	 *
 	 * @throws TagNotFoundException whenever a tag was not found
 	 */
-	protected function processFilterRules($filterRules) {
+	protected function processFilterRules(array $filterRules): array {
 		$ns = '{' . $this::NS_OWNCLOUD . '}';
 		$resultFileIds = null;
 		$systemTagIds = [];
@@ -310,7 +311,7 @@ class FilesReportPlugin extends ServerPlugin {
 		return $resultFileIds;
 	}
 
-	private function getSystemTagFileIds($systemTagIds) {
+	private function getSystemTagFileIds(array $systemTagIds): array {
 		$resultFileIds = null;
 
 		// check user permissions, if applicable
@@ -358,11 +359,11 @@ class FilesReportPlugin extends ServerPlugin {
 	 * @param array $circlesIds
 	 * @return array
 	 */
-	private function getCirclesFileIds(array $circlesIds) {
+	private function getCirclesFileIds(array $circlesIds): array {
 		if (!$this->appManager->isEnabledForUser('circles') || !class_exists('\OCA\Circles\Api\v1\Circles')) {
 			return [];
 		}
-		return \OCA\Circles\Api\v1\Circles::getFilesForCircles($circlesIds);
+		return Circles::getFilesForCircles($circlesIds);
 	}
 
 
@@ -375,7 +376,7 @@ class FilesReportPlugin extends ServerPlugin {
 	 * @param Node[] nodes nodes for which to fetch and prepare responses
 	 * @return Response[]
 	 */
-	public function prepareResponses($filesUri, $requestedProps, $nodes) {
+	public function prepareResponses(string $filesUri, array $requestedProps, array $nodes): array {
 		$responses = [];
 		foreach ($nodes as $node) {
 			$propFind = new PropFind($filesUri . $node->getPath(), $requestedProps);
@@ -386,7 +387,7 @@ class FilesReportPlugin extends ServerPlugin {
 			$result['href'] = $propFind->getPath();
 
 			$resourceType = $this->server->getResourceTypeForNode($node);
-			if (in_array('{DAV:}collection', $resourceType) || in_array('{DAV:}principal', $resourceType)) {
+			if (in_array('{DAV:}collection', $resourceType, true) || in_array('{DAV:}principal', $resourceType, true)) {
 				$result['href'] .= '/';
 			}
 
@@ -406,7 +407,7 @@ class FilesReportPlugin extends ServerPlugin {
 	 * @param array $fileIds file ids
 	 * @return Node[] array of Sabre nodes
 	 */
-	public function findNodesByFileIds($rootNode, $fileIds) {
+	public function findNodesByFileIds(Node $rootNode, array $fileIds): array {
 		$folder = $this->userFolder;
 		if (trim($rootNode->getPath(), '/') !== '') {
 			$folder = $folder->get($rootNode->getPath());
@@ -419,7 +420,7 @@ class FilesReportPlugin extends ServerPlugin {
 				$entry = current($entry);
 				if ($entry instanceof \OCP\Files\File) {
 					$results[] = new File($this->fileView, $entry);
-				} elseif ($entry instanceof \OCP\Files\Folder) {
+				} elseif ($entry instanceof Folder) {
 					$results[] = new Directory($this->fileView, $entry);
 				}
 			}
@@ -431,7 +432,7 @@ class FilesReportPlugin extends ServerPlugin {
 	/**
 	 * Returns whether the currently logged in user is an administrator
 	 */
-	private function isAdmin() {
+	private function isAdmin(): bool {
 		$user = $this->userSession->getUser();
 		if ($user !== null) {
 			return $this->groupManager->isAdmin($user->getUID());

@@ -29,6 +29,25 @@
  *
  */
 // no php execution timeout for webdav
+use OC\Authentication\TwoFactorAuth\Manager;
+use OC\Files\Filesystem;
+use OC\Security\Bruteforce\Throttler;
+use OCA\DAV\Connector\Sabre\Auth as SabreAuthConnector;
+use OCA\DAV\Connector\Sabre\BearerAuth;
+use OCA\DAV\Connector\Sabre\ServerFactory;
+use OCP\Files\Mount\IMountManager;
+use OCP\IConfig;
+use OCP\IDBConnection;
+use OCP\IPreview;
+use OCP\IRequest;
+use OCP\ISession;
+use OCP\ITagManager;
+use OCP\IUserSession;
+use OCP\L10N\IFactory;
+use OCP\SabrePluginEvent;
+use Psr\Log\LoggerInterface;
+use Sabre\DAV\Auth\Plugin as AuthPlugin;
+
 if (strpos(@ini_get('disable_functions'), 'set_time_limit') === false) {
 	@set_time_limit(0);
 }
@@ -37,47 +56,58 @@ ignore_user_abort(true);
 // Turn off output buffering to prevent memory problems
 \OC_Util::obEnd();
 
-$serverFactory = new \OCA\DAV\Connector\Sabre\ServerFactory(
-	\OC::$server->getConfig(),
-	\OC::$server->getLogger(),
-	\OC::$server->getDatabaseConnection(),
-	\OC::$server->getUserSession(),
-	\OC::$server->getMountManager(),
-	\OC::$server->getTagManager(),
-	\OC::$server->getRequest(),
-	\OC::$server->getPreviewManager(),
-	\OC::$server->getEventDispatcher(),
-	\OC::$server->getL10N('dav')
+/** @var IUserSession $userSession */
+$userSession = \OC::$server->get(IUserSession::class);
+/** @var ISession $session */
+$session = \OC::$server->get(ISession::class);
+/** @var IRequest $request */
+$request = \OC::$server->get(IRequest::class);
+/** @var IConfig $config */
+$config = \OC::$server->get(IConfig::class);
+/** @var IFactory $i10nFactory */
+$i10nFactory = \OC::$server->get(IFactory::class);
+$dispatcher = \OC::$server->getEventDispatcher();
+
+$serverFactory = new ServerFactory(
+	$config,
+	\OC::$server->get(LoggerInterface::class),
+	\OC::$server->get(IDBConnection::class),
+	$userSession,
+	\OC::$server->get(IMountManager::class),
+	\OC::$server->get(ITagManager::class),
+	$request,
+	\OC::$server->get(IPreview::class),
+	$dispatcher,
+	$i10nFactory->get('dav')
 );
 
 // Backends
-$authBackend = new \OCA\DAV\Connector\Sabre\Auth(
-	\OC::$server->getSession(),
-	\OC::$server->getUserSession(),
-	\OC::$server->getRequest(),
-	\OC::$server->getTwoFactorAuthManager(),
-	\OC::$server->getBruteForceThrottler(),
+$authBackend = new SabreAuthConnector(
+	$session,
+	$userSession,
+	$request,
+	\OC::$server->get(Manager::class),
+	\OC::$server->get(Throttler::class),
 	'principals/'
 );
-$authPlugin = new \Sabre\DAV\Auth\Plugin($authBackend);
-$bearerAuthPlugin = new \OCA\DAV\Connector\Sabre\BearerAuth(
-	\OC::$server->getUserSession(),
-	\OC::$server->getSession(),
-	\OC::$server->getRequest()
+$authPlugin = new AuthPlugin($authBackend);
+$bearerAuthPlugin = new BearerAuth(
+	$userSession,
+	$session,
+	$request
 );
 $authPlugin->addBackend($bearerAuthPlugin);
 
-$requestUri = \OC::$server->getRequest()->getRequestUri();
+$requestUri = $request->getRequestUri();
 
 $server = $serverFactory->createServer($baseuri, $requestUri, $authPlugin, function () {
 	// use the view for the logged in user
-	return \OC\Files\Filesystem::getView();
+	return Filesystem::getView();
 });
 
-$dispatcher = \OC::$server->getEventDispatcher();
 // allow setup of additional plugins
-$event = new \OCP\SabrePluginEvent($server);
+$event = new SabrePluginEvent($server);
 $dispatcher->dispatch('OCA\DAV\Connector\Sabre::addPlugin', $event);
 
 // And off we go!
-$server->exec();
+$server->start();

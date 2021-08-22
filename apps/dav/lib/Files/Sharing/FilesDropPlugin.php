@@ -26,6 +26,7 @@ namespace OCA\DAV\Files\Sharing;
 
 use OC\Files\View;
 use Sabre\DAV\Exception\MethodNotAllowed;
+use Sabre\DAV\Server;
 use Sabre\DAV\ServerPlugin;
 use Sabre\HTTP\RequestInterface;
 use Sabre\HTTP\ResponseInterface;
@@ -44,11 +45,11 @@ class FilesDropPlugin extends ServerPlugin {
 	/**
 	 * @param View $view
 	 */
-	public function setView($view) {
+	public function setView(View $view): void {
 		$this->view = $view;
 	}
 
-	public function enable() {
+	public function enable(): void {
 		$this->enabled = true;
 	}
 
@@ -56,17 +57,17 @@ class FilesDropPlugin extends ServerPlugin {
 	/**
 	 * This initializes the plugin.
 	 *
-	 * @param \Sabre\DAV\Server $server Sabre server
+	 * @param Server $server Sabre server
 	 *
 	 * @return void
 	 * @throws MethodNotAllowed
 	 */
-	public function initialize(\Sabre\DAV\Server $server) {
+	public function initialize(Server $server) {
 		$server->on('beforeMethod:*', [$this, 'beforeMethod'], 999);
 		$this->enabled = false;
 	}
 
-	public function beforeMethod(RequestInterface $request, ResponseInterface $response) {
+	public function beforeMethod(RequestInterface $request, ResponseInterface $response): void {
 		if (!$this->enabled) {
 			return;
 		}

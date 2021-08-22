@@ -25,22 +25,26 @@
 namespace OCA\DAV\Tests\unit\Comments;
 
 use OCA\DAV\Comments\EntityCollection as EntityCollectionImplemantation;
+use OCA\DAV\Comments\EntityTypeCollection;
 use OCP\Comments\ICommentsManager;
-use OCP\ILogger;
 use OCP\IUserManager;
 use OCP\IUserSession;
+use PHPUnit\Framework\MockObject\MockObject;
+use Psr\Log\LoggerInterface;
+use Sabre\DAV\Exception\MethodNotAllowed;
+use Sabre\DAV\Exception\NotFound;
 
 class EntityTypeCollectionTest extends \Test\TestCase {
 
-	/** @var ICommentsManager|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var ICommentsManager|MockObject */
 	protected $commentsManager;
-	/** @var \OCP\IUserManager|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IUserManager|MockObject */
 	protected $userManager;
-	/** @var \OCP\ILogger|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var LoggerInterface|MockObject */
 	protected $logger;
-	/** @var \OCA\DAV\Comments\EntityTypeCollection */
+	/** @var EntityTypeCollection */
 	protected $collection;
-	/** @var IUserSession|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IUserSession|MockObject */
 	protected $userSession;
 
 	protected $childMap = [];
@@ -57,13 +61,13 @@ class EntityTypeCollectionTest extends \Test\TestCase {
 		$this->userSession = $this->getMockBuilder(IUserSession::class)
 			->disableOriginalConstructor()
 			->getMock();
-		$this->logger = $this->getMockBuilder(ILogger::class)
+		$this->logger = $this->getMockBuilder(LoggerInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 
 		$instance = $this;
 
-		$this->collection = new \OCA\DAV\Comments\EntityTypeCollection(
+		$this->collection = new EntityTypeCollection(
 			'files',
 			$this->commentsManager,
 			$this->userManager,
@@ -75,32 +79,32 @@ class EntityTypeCollectionTest extends \Test\TestCase {
 		);
 	}
 
-	public function testChildExistsYes() {
+	public function testChildExistsYes(): void {
 		$this->childMap[17] = true;
 		$this->assertTrue($this->collection->childExists('17'));
 	}
 
-	public function testChildExistsNo() {
+	public function testChildExistsNo(): void {
 		$this->assertFalse($this->collection->childExists('17'));
 	}
 
-	public function testGetChild() {
+	public function testGetChild(): void {
 		$this->childMap[17] = true;
 
 		$ec = $this->collection->getChild('17');
-		$this->assertTrue($ec instanceof EntityCollectionImplemantation);
+		$this->assertInstanceOf(EntityCollectionImplemantation::class, $ec);
 	}
 
 
-	public function testGetChildException() {
-		$this->expectException(\Sabre\DAV\Exception\NotFound::class);
+	public function testGetChildException(): void {
+		$this->expectException(NotFound::class);
 
 		$this->collection->getChild('17');
 	}
 
 
-	public function testGetChildren() {
-		$this->expectException(\Sabre\DAV\Exception\MethodNotAllowed::class);
+	public function testGetChildren(): void {
+		$this->expectException(MethodNotAllowed::class);
 
 		$this->collection->getChildren();
 	}

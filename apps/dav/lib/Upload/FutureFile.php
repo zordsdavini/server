@@ -46,7 +46,7 @@ class FutureFile implements \Sabre\DAV\IFile {
 	 * @param Directory $root
 	 * @param string $name
 	 */
-	public function __construct(Directory $root, $name) {
+	public function __construct(Directory $root, string $name) {
 		$this->root = $root;
 		$this->name = $name;
 	}
@@ -85,7 +85,7 @@ class FutureFile implements \Sabre\DAV\IFile {
 	 */
 	public function getSize() {
 		$children = $this->root->getChildren();
-		$sizes = array_map(function ($node) {
+		$sizes = array_map(static function ($node) {
 			/** @var IFile $node */
 			return $node->getSize();
 		}, $children);

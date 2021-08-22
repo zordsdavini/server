@@ -65,9 +65,9 @@ class LegacyDAVACL extends DavAclPlugin {
 		$propFind->handle('{DAV:}current-user-principal', function () {
 			if ($url = parent::getCurrentUserPrincipal()) {
 				return new Principal(Principal::HREF, $url . '/');
-			} else {
-				return new Principal(Principal::UNAUTHENTICATED);
 			}
+
+			return new Principal(Principal::UNAUTHENTICATED);
 		});
 
 		return parent::propFind($propFind, $node);

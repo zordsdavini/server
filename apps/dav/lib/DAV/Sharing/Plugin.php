@@ -200,7 +200,7 @@ class Plugin extends ServerPlugin {
 	 * @param INode $node
 	 * @return void
 	 */
-	public function propFind(PropFind $propFind, INode $node) {
+	public function propFind(PropFind $propFind, INode $node): void {
 		if ($node instanceof IShareable) {
 			$propFind->handle('{' . Plugin::NS_OWNCLOUD . '}invite', function () use ($node) {
 				return new Invite(

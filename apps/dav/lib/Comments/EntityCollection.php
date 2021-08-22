@@ -23,12 +23,15 @@
  */
 namespace OCA\DAV\Comments;
 
+use DateTime;
+use Exception;
 use OCP\Comments\ICommentsManager;
 use OCP\Comments\NotFoundException;
-use OCP\ILogger;
 use OCP\IUserManager;
 use OCP\IUserSession;
+use Psr\Log\LoggerInterface;
 use Sabre\DAV\Exception\NotFound;
+use Sabre\DAV\INode;
 use Sabre\DAV\IProperties;
 use Sabre\DAV\PropPatch;
 
@@ -46,7 +49,7 @@ class EntityCollection extends RootCollection implements IProperties {
 	/** @var  string */
 	protected $id;
 
-	/** @var  ILogger */
+	/** @var LoggerInterface */
 	protected $logger;
 
 	/**
@@ -55,7 +58,7 @@ class EntityCollection extends RootCollection implements IProperties {
 	 * @param ICommentsManager $commentsManager
 	 * @param IUserManager $userManager
 	 * @param IUserSession $userSession
-	 * @param ILogger $logger
+	 * @param LoggerInterface $logger
 	 */
 	public function __construct(
 		$id,
@@ -63,7 +66,7 @@ class EntityCollection extends RootCollection implements IProperties {
 		ICommentsManager $commentsManager,
 		IUserManager $userManager,
 		IUserSession $userSession,
-		ILogger $logger
+		LoggerInterface $logger
 	) {
 		foreach (['id', 'name'] as $property) {
 			$$property = trim($$property);
@@ -84,7 +87,7 @@ class EntityCollection extends RootCollection implements IProperties {
 	 *
 	 * @return string
 	 */
-	public function getId() {
+	public function getId(): string {
 		return $this->id;
 	}
 
@@ -95,7 +98,7 @@ class EntityCollection extends RootCollection implements IProperties {
 	 * exist.
 	 *
 	 * @param string $name
-	 * @return \Sabre\DAV\INode
+	 * @return INode
 	 * @throws NotFound
 	 */
 	public function getChild($name) {
@@ -116,9 +119,9 @@ class EntityCollection extends RootCollection implements IProperties {
 	/**
 	 * Returns an array with all the child nodes
 	 *
-	 * @return \Sabre\DAV\INode[]
+	 * @return INode[]
 	 */
-	public function getChildren() {
+	public function getChildren(): array {
 		return $this->findChildren();
 	}
 
@@ -128,10 +131,10 @@ class EntityCollection extends RootCollection implements IProperties {
 	 *
 	 * @param int $limit
 	 * @param int $offset
-	 * @param \DateTime|null $datetime
+	 * @param DateTime|null $datetime
 	 * @return CommentNode[]
 	 */
-	public function findChildren($limit = 0, $offset = 0, \DateTime $datetime = null) {
+	public function findChildren(int $limit = 0, int $offset = 0, DateTime $datetime = null): array {
 		$comments = $this->commentsManager->getForObject($this->name, $this->id, $limit, $offset, $datetime);
 		$result = [];
 		foreach ($comments as $comment) {
@@ -152,7 +155,7 @@ class EntityCollection extends RootCollection implements IProperties {
 	 * @param string $name
 	 * @return bool
 	 */
-	public function childExists($name) {
+	public function childExists($name): bool {
 		try {
 			$this->commentsManager->get($name);
 			return true;
@@ -164,11 +167,12 @@ class EntityCollection extends RootCollection implements IProperties {
 	/**
 	 * Sets the read marker to the specified date for the logged in user
 	 *
-	 * @param \DateTime $value
+	 * @param string|null $value
 	 * @return bool
+	 * @throws Exception
 	 */
-	public function setReadMarker($value) {
-		$dateTime = new \DateTime($value);
+	public function setReadMarker(?string $value): bool {
+		$dateTime = new DateTime($value);
 		$user = $this->userSession->getUser();
 		$this->commentsManager->setReadMark($this->name, $this->id, $dateTime, $user);
 		return true;

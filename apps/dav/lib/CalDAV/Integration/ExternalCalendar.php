@@ -22,8 +22,11 @@
  */
 namespace OCA\DAV\CalDAV\Integration;
 
+use InvalidArgumentException;
 use Sabre\CalDAV;
 use Sabre\DAV;
+use function count;
+use function in_array;
 
 /**
  * Class ExternalCalendar
@@ -111,8 +114,8 @@ abstract class ExternalCalendar implements CalDAV\ICalendar, DAV\IProperties {
 		$array = array_slice(explode(self::DELIMITER, $calendarUri, 3), 1);
 		// Check the array has expected amount of elements
 		// and none of them is an empty string
-		if (\count($array) !== 2 || \in_array('', $array, true)) {
-			throw new \InvalidArgumentException('Provided calendar uri was not app-generated');
+		if (count($array) !== 2 || in_array('', $array, true)) {
+			throw new InvalidArgumentException('Provided calendar uri was not app-generated');
 		}
 
 		return $array;

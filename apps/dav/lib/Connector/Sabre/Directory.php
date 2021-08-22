@@ -40,23 +40,30 @@ use OCA\DAV\Connector\Sabre\Exception\InvalidPath;
 use OCP\Files\FileInfo;
 use OCP\Files\ForbiddenException;
 use OCP\Files\InvalidPathException;
+use OCP\Files\Mount\IMountManager;
+use OCP\Files\NotFoundException;
 use OCP\Files\NotPermittedException;
 use OCP\Files\StorageNotAvailableException;
 use OCP\Lock\ILockingProvider;
 use OCP\Lock\LockedException;
+use OCP\Share\IManager;
 use Sabre\DAV\Exception\BadRequest;
 use Sabre\DAV\Exception\Locked;
 use Sabre\DAV\Exception\NotFound;
 use Sabre\DAV\Exception\ServiceUnavailable;
+use Sabre\DAV\ICollection;
+use Sabre\DAV\ICopyTarget;
 use Sabre\DAV\IFile;
+use Sabre\DAV\IMoveTarget;
 use Sabre\DAV\INode;
+use Sabre\DAV\IQuota;
 
-class Directory extends \OCA\DAV\Connector\Sabre\Node implements \Sabre\DAV\ICollection, \Sabre\DAV\IQuota, \Sabre\DAV\IMoveTarget, \Sabre\DAV\ICopyTarget {
+class Directory extends Node implements ICollection, IQuota, IMoveTarget, ICopyTarget {
 
 	/**
 	 * Cached directory content
 	 *
-	 * @var \OCP\Files\FileInfo[]
+	 * @var FileInfo[]
 	 */
 	private $dirContent;
 
@@ -75,12 +82,12 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node implements \Sabre\DAV\ICol
 	/**
 	 * Sets up the node, expects a full path name
 	 *
-	 * @param \OC\Files\View $view
-	 * @param \OCP\Files\FileInfo $info
+	 * @param View $view
+	 * @param FileInfo $info
 	 * @param ObjectTree|null $tree
-	 * @param \OCP\Share\IManager $shareManager
+	 * @param IManager|null $shareManager
 	 */
-	public function __construct(View $view, FileInfo $info, $tree = null, $shareManager = null) {
+	public function __construct(View $view, FileInfo $info, ?ObjectTree $tree = null, ?IManager $shareManager = null) {
 		parent::__construct($view, $info, $shareManager);
 		$this->tree = $tree;
 	}
@@ -115,7 +122,7 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node implements \Sabre\DAV\ICol
 	 * @throws \Sabre\DAV\Exception
 	 * @throws \Sabre\DAV\Exception\BadRequest
 	 * @throws \Sabre\DAV\Exception\Forbidden
-	 * @throws \Sabre\DAV\Exception\ServiceUnavailable
+	 * @throws ServiceUnavailable
 	 */
 	public function createFile($name, $data = null) {
 		try {
@@ -146,7 +153,7 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node implements \Sabre\DAV\ICol
 				// use a dummy FileInfo which is acceptable here since it will be refreshed after the put is complete
 				$info = new \OC\Files\FileInfo($path, null, null, [], null);
 			}
-			$node = new \OCA\DAV\Connector\Sabre\File($this->fileView, $info);
+			$node = new File($this->fileView, $info);
 
 			// only allow 1 process to upload a file at once but still allow reading the file while writing the part file
 			$node->acquireLock(ILockingProvider::LOCK_SHARED);
@@ -157,8 +164,6 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node implements \Sabre\DAV\ICol
 			$this->fileView->unlockFile($path . '.upload.part', ILockingProvider::LOCK_EXCLUSIVE);
 			$node->releaseLock(ILockingProvider::LOCK_SHARED);
 			return $result;
-		} catch (\OCP\Files\StorageNotAvailableException $e) {
-			throw new \Sabre\DAV\Exception\ServiceUnavailable($e->getMessage(), $e->getCode(), $e);
 		} catch (InvalidPathException $ex) {
 			throw new InvalidPath($ex->getMessage(), false, $ex);
 		} catch (ForbiddenException $ex) {
@@ -175,7 +180,7 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node implements \Sabre\DAV\ICol
 	 * @throws FileLocked
 	 * @throws InvalidPath
 	 * @throws \Sabre\DAV\Exception\Forbidden
-	 * @throws \Sabre\DAV\Exception\ServiceUnavailable
+	 * @throws ServiceUnavailable
 	 */
 	public function createDirectory($name) {
 		try {
@@ -188,8 +193,6 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node implements \Sabre\DAV\ICol
 			if (!$this->fileView->mkdir($newPath)) {
 				throw new \Sabre\DAV\Exception\Forbidden('Could not create directory ' . $newPath);
 			}
-		} catch (\OCP\Files\StorageNotAvailableException $e) {
-			throw new \Sabre\DAV\Exception\ServiceUnavailable($e->getMessage());
 		} catch (InvalidPathException $ex) {
 			throw new InvalidPath($ex->getMessage());
 		} catch (ForbiddenException $ex) {
@@ -203,13 +206,13 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node implements \Sabre\DAV\ICol
 	 * Returns a specific child node, referenced by its name
 	 *
 	 * @param string $name
-	 * @param \OCP\Files\FileInfo $info
+	 * @param FileInfo|null $info
 	 * @return \Sabre\DAV\INode
 	 * @throws InvalidPath
-	 * @throws \Sabre\DAV\Exception\NotFound
-	 * @throws \Sabre\DAV\Exception\ServiceUnavailable
+	 * @throws NotFound
+	 * @throws ServiceUnavailable
 	 */
-	public function getChild($name, $info = null) {
+	public function getChild(string $name, FileInfo $info = null) {
 		if (!$this->info->isReadable()) {
 			// avoid detecting files through this way
 			throw new NotFound();
@@ -220,8 +223,8 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node implements \Sabre\DAV\ICol
 			try {
 				$this->fileView->verifyPath($this->path, $name);
 				$info = $this->fileView->getFileInfo($path);
-			} catch (\OCP\Files\StorageNotAvailableException $e) {
-				throw new \Sabre\DAV\Exception\ServiceUnavailable($e->getMessage());
+			} catch (StorageNotAvailableException $e) {
+				throw new ServiceUnavailable($e->getMessage());
 			} catch (InvalidPathException $ex) {
 				throw new InvalidPath($ex->getMessage());
 			} catch (ForbiddenException $e) {
@@ -230,13 +233,13 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node implements \Sabre\DAV\ICol
 		}
 
 		if (!$info) {
-			throw new \Sabre\DAV\Exception\NotFound('File with name ' . $path . ' could not be located');
+			throw new NotFound('File with name ' . $path . ' could not be located');
 		}
 
 		if ($info['mimetype'] === 'httpd/unix-directory') {
-			$node = new \OCA\DAV\Connector\Sabre\Directory($this->fileView, $info, $this->tree, $this->shareManager);
+			$node = new Directory($this->fileView, $info, $this->tree, $this->shareManager);
 		} else {
-			$node = new \OCA\DAV\Connector\Sabre\File($this->fileView, $info, $this->shareManager);
+			$node = new File($this->fileView, $info, $this->shareManager);
 		}
 		if ($this->tree) {
 			$this->tree->cacheNode($node);
@@ -251,7 +254,7 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node implements \Sabre\DAV\ICol
 	 * @throws \Sabre\DAV\Exception\Locked
 	 * @throws \OCA\DAV\Connector\Sabre\Exception\Forbidden
 	 */
-	public function getChildren() {
+	public function getChildren(): array {
 		if (!is_null($this->dirContent)) {
 			return $this->dirContent;
 		}
@@ -281,7 +284,7 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node implements \Sabre\DAV\ICol
 	 * @param string $name
 	 * @return bool
 	 */
-	public function childExists($name) {
+	public function childExists($name): bool {
 		// note: here we do NOT resolve the chunk file name to the real file name
 		// to make sure we return false when checking for file existence with a chunk
 		// file name.
@@ -329,8 +332,8 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node implements \Sabre\DAV\ICol
 		try {
 			$info = $this->fileView->getFileInfo($this->path, false);
 			$storageInfo = \OC_Helper::getStorageInfo($this->info->getPath(), $info);
-			if ($storageInfo['quota'] === \OCP\Files\FileInfo::SPACE_UNLIMITED) {
-				$free = \OCP\Files\FileInfo::SPACE_UNLIMITED;
+			if ($storageInfo['quota'] === FileInfo::SPACE_UNLIMITED) {
+				$free = FileInfo::SPACE_UNLIMITED;
 			} else {
 				$free = $storageInfo['free'];
 			}
@@ -339,9 +342,9 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node implements \Sabre\DAV\ICol
 				$free
 			];
 			return $this->quotaInfo;
-		} catch (\OCP\Files\NotFoundException $e) {
+		} catch (NotFoundException $e) {
 			return [0, 0];
-		} catch (\OCP\Files\StorageNotAvailableException $e) {
+		} catch (StorageNotAvailableException $e) {
 			return [0, 0];
 		} catch (NotPermittedException $e) {
 			return [0, 0];
@@ -404,7 +407,7 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node implements \Sabre\DAV\ICol
 		$sourcePath = $sourceNode->getPath();
 
 		$isMovableMount = false;
-		$sourceMount = \OC::$server->getMountManager()->find($this->fileView->getAbsolutePath($sourcePath));
+		$sourceMount = \OC::$server->get(IMountManager::class)->find($this->fileView->getAbsolutePath($sourcePath));
 		$internalPath = $sourceMount->getInternalPath($this->fileView->getAbsolutePath($sourcePath));
 		if ($sourceMount instanceof MoveableMount && $internalPath === '') {
 			$isMovableMount = true;
@@ -453,7 +456,6 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node implements \Sabre\DAV\ICol
 
 		return true;
 	}
-
 
 	public function copyInto($targetName, $sourcePath, INode $sourceNode) {
 		if ($sourceNode instanceof File || $sourceNode instanceof Directory) {

@@ -34,8 +34,10 @@ use Sabre\DAV\Exception\BadRequest;
 use Sabre\DAV\Exception\Conflict;
 use Sabre\DAV\Exception\Forbidden;
 use Sabre\DAV\Exception\UnsupportedMediaType;
+use Sabre\DAV\INode;
 use Sabre\DAV\PropFind;
 use Sabre\DAV\PropPatch;
+use Sabre\DAV\Server;
 use Sabre\HTTP\RequestInterface;
 use Sabre\HTTP\ResponseInterface;
 
@@ -58,7 +60,7 @@ class SystemTagPlugin extends \Sabre\DAV\ServerPlugin {
 	public const CANASSIGN_PROPERTYNAME = '{http://owncloud.org/ns}can-assign';
 
 	/**
-	 * @var \Sabre\DAV\Server $server
+	 * @var Server $server
 	 */
 	private $server;
 
@@ -98,10 +100,10 @@ class SystemTagPlugin extends \Sabre\DAV\ServerPlugin {
 	 *
 	 * This method should set up the required event subscriptions.
 	 *
-	 * @param \Sabre\DAV\Server $server
+	 * @param Server $server
 	 * @return void
 	 */
-	public function initialize(\Sabre\DAV\Server $server) {
+	public function initialize(Server $server) {
 		$server->xml->namespaceMap[self::NS_OWNCLOUD] = 'oc';
 
 		$server->protectedProperties[] = self::ID_PROPERTYNAME;
@@ -161,7 +163,7 @@ class SystemTagPlugin extends \Sabre\DAV\ServerPlugin {
 	 * @throws Conflict if a tag with the same properties already exists
 	 * @throws UnsupportedMediaType if the content type is not supported
 	 */
-	private function createTag($data, $contentType = 'application/json') {
+	private function createTag(string $data, string $contentType = 'application/json'): ISystemTag {
 		if (explode(';', $contentType)[0] === 'application/json') {
 			$data = json_decode($data, true);
 		} else {
@@ -214,12 +216,12 @@ class SystemTagPlugin extends \Sabre\DAV\ServerPlugin {
 	 * Retrieves system tag properties
 	 *
 	 * @param PropFind $propFind
-	 * @param \Sabre\DAV\INode $node
+	 * @param INode $node
 	 */
 	public function handleGetProperties(
 		PropFind $propFind,
-		\Sabre\DAV\INode $node
-	) {
+		INode $node
+	): void {
 		if (!($node instanceof SystemTagNode) && !($node instanceof SystemTagMappingNode)) {
 			return;
 		}
@@ -268,7 +270,7 @@ class SystemTagPlugin extends \Sabre\DAV\ServerPlugin {
 	 *
 	 * @return void
 	 */
-	public function handleUpdateProperties($path, PropPatch $propPatch) {
+	public function handleUpdateProperties(string $path, PropPatch $propPatch): void {
 		$node = $this->server->tree->getNodeForPath($path);
 		if (!($node instanceof SystemTagNode)) {
 			return;

@@ -31,26 +31,37 @@
  */
 namespace OCA\DAV\Connector\Sabre;
 
+use OC;
 use OC\Files\Node\Folder;
+use OC\Files\View;
 use OCA\DAV\AppInfo\PluginManager;
+use OCA\DAV\DAV\CustomPropertiesBackend;
 use OCA\DAV\Files\BrowserErrorPagePlugin;
+use OCP\App\IAppManager;
+use OCP\Comments\ICommentsManager;
+use OCP\Files\IRootFolder;
 use OCP\Files\Mount\IMountManager;
 use OCP\IConfig;
 use OCP\IDBConnection;
+use OCP\IGroupManager;
 use OCP\IL10N;
-use OCP\ILogger;
 use OCP\IPreview;
 use OCP\IRequest;
 use OCP\ITagManager;
 use OCP\IUserSession;
 use OCP\SabrePluginEvent;
+use OCP\Share\IManager;
+use OCP\SystemTag\ISystemTagManager;
+use OCP\SystemTag\ISystemTagObjectMapper;
+use Psr\Log\LoggerInterface;
 use Sabre\DAV\Auth\Plugin;
+use Sabre\DAV\PropertyStorage\Plugin as PropertyStoragePlugin;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class ServerFactory {
 	/** @var IConfig */
 	private $config;
-	/** @var ILogger */
+	/** @var LoggerInterface */
 	private $logger;
 	/** @var IDBConnection */
 	private $databaseConnection;
@@ -71,17 +82,19 @@ class ServerFactory {
 
 	/**
 	 * @param IConfig $config
-	 * @param ILogger $logger
+	 * @param LoggerInterface $logger
 	 * @param IDBConnection $databaseConnection
 	 * @param IUserSession $userSession
 	 * @param IMountManager $mountManager
 	 * @param ITagManager $tagManager
 	 * @param IRequest $request
 	 * @param IPreview $previewManager
+	 * @param EventDispatcherInterface $eventDispatcher
+	 * @param IL10N $l10n
 	 */
 	public function __construct(
 		IConfig $config,
-		ILogger $logger,
+		LoggerInterface $logger,
 		IDBConnection $databaseConnection,
 		IUserSession $userSession,
 		IMountManager $mountManager,
@@ -110,26 +123,26 @@ class ServerFactory {
 	 * @param callable $viewCallBack callback that should return the view for the dav endpoint
 	 * @return Server
 	 */
-	public function createServer($baseUri,
-								 $requestUri,
+	public function createServer(string $baseUri,
+								 string $requestUri,
 								 Plugin $authPlugin,
-								 callable $viewCallBack) {
+								 callable $viewCallBack): Server {
 		// Fire up server
-		$objectTree = new \OCA\DAV\Connector\Sabre\ObjectTree();
-		$server = new \OCA\DAV\Connector\Sabre\Server($objectTree);
+		$objectTree = new ObjectTree();
+		$server = new Server($objectTree);
 		// Set URL explicitly due to reverse-proxy situations
 		$server->httpRequest->setUrl($requestUri);
 		$server->setBaseUri($baseUri);
 
 		// Load plugins
-		$server->addPlugin(new \OCA\DAV\Connector\Sabre\MaintenancePlugin($this->config, $this->l10n));
-		$server->addPlugin(new \OCA\DAV\Connector\Sabre\BlockLegacyClientPlugin($this->config));
-		$server->addPlugin(new \OCA\DAV\Connector\Sabre\AnonymousOptionsPlugin());
+		$server->addPlugin(new MaintenancePlugin($this->config, $this->l10n));
+		$server->addPlugin(new BlockLegacyClientPlugin($this->config));
+		$server->addPlugin(new AnonymousOptionsPlugin());
 		$server->addPlugin($authPlugin);
 		// FIXME: The following line is a workaround for legacy components relying on being able to send a GET to /
-		$server->addPlugin(new \OCA\DAV\Connector\Sabre\DummyGetResponsePlugin());
-		$server->addPlugin(new \OCA\DAV\Connector\Sabre\ExceptionLoggerPlugin('webdav', $this->logger));
-		$server->addPlugin(new \OCA\DAV\Connector\Sabre\LockPlugin());
+		$server->addPlugin(new DummyGetResponsePlugin());
+		$server->addPlugin(new ExceptionLoggerPlugin('webdav', $this->logger));
+		$server->addPlugin(new LockPlugin());
 		// Some WebDAV clients do require Class 2 WebDAV support (locking), since
 		// we do not provide locking we emulate it using a fake locking plugin.
 		if ($this->request->isUserAgent([
@@ -137,7 +150,7 @@ class ServerFactory {
 			'/OneNote/',
 			'/Microsoft-WebDAV-MiniRedir/',
 		])) {
-			$server->addPlugin(new \OCA\DAV\Connector\Sabre\FakeLockerPlugin());
+			$server->addPlugin(new FakeLockerPlugin());
 		}
 
 		if (BrowserErrorPagePlugin::isBrowserRequest($this->request)) {
@@ -147,9 +160,15 @@ class ServerFactory {
 		// wait with registering these until auth is handled and the filesystem is setup
 		$server->on('beforeMethod:*', function () use ($server, $objectTree, $viewCallBack) {
 			// ensure the skeleton is copied
-			$userFolder = \OC::$server->getUserFolder();
+			$userFolder = null;
+			$user = $this->userSession->getUser();
+			if ($user) {
+				$userId = $user->getUID();
+				$root = OC::$server->get(IRootFolder::class);
+				$userFolder = $root->getUserFolder($userId);
+			}
 
-			/** @var \OC\Files\View $view */
+			/** @var View $view */
 			$view = $viewCallBack($server);
 			if ($userFolder instanceof Folder && $userFolder->getPath() === $view->getRoot()) {
 				$rootInfo = $userFolder;
@@ -159,14 +178,14 @@ class ServerFactory {
 
 			// Create Nextcloud Dir
 			if ($rootInfo->getType() === 'dir') {
-				$root = new \OCA\DAV\Connector\Sabre\Directory($view, $rootInfo, $objectTree);
+				$root = new Directory($view, $rootInfo, $objectTree);
 			} else {
-				$root = new \OCA\DAV\Connector\Sabre\File($view, $rootInfo);
+				$root = new File($view, $rootInfo);
 			}
 			$objectTree->init($root, $view, $this->mountManager);
 
 			$server->addPlugin(
-				new \OCA\DAV\Connector\Sabre\FilesPlugin(
+				new FilesPlugin(
 					$objectTree,
 					$this->config,
 					$this->request,
@@ -176,32 +195,32 @@ class ServerFactory {
 					!$this->config->getSystemValue('debug', false)
 				)
 			);
-			$server->addPlugin(new \OCA\DAV\Connector\Sabre\QuotaPlugin($view, true));
+			$server->addPlugin(new QuotaPlugin($view));
 
 			if ($this->userSession->isLoggedIn()) {
-				$server->addPlugin(new \OCA\DAV\Connector\Sabre\TagsPlugin($objectTree, $this->tagManager));
-				$server->addPlugin(new \OCA\DAV\Connector\Sabre\SharesPlugin(
+				$server->addPlugin(new TagsPlugin($objectTree, $this->tagManager));
+				$server->addPlugin(new SharesPlugin(
 					$objectTree,
 					$this->userSession,
 					$userFolder,
-					\OC::$server->getShareManager()
+					OC::$server->get(IManager::class)
 				));
-				$server->addPlugin(new \OCA\DAV\Connector\Sabre\CommentPropertiesPlugin(\OC::$server->getCommentsManager(), $this->userSession));
-				$server->addPlugin(new \OCA\DAV\Connector\Sabre\FilesReportPlugin(
+				$server->addPlugin(new CommentPropertiesPlugin(OC::$server->get(ICommentsManager::class), $this->userSession));
+				$server->addPlugin(new FilesReportPlugin(
 					$objectTree,
 					$view,
-					\OC::$server->getSystemTagManager(),
-					\OC::$server->getSystemTagObjectMapper(),
-					\OC::$server->getTagManager(),
+					OC::$server->get(ISystemTagManager::class),
+					OC::$server->get(ISystemTagObjectMapper::class),
+					OC::$server->get(ITagManager::class),
 					$this->userSession,
-					\OC::$server->getGroupManager(),
+					OC::$server->get(IGroupManager::class),
 					$userFolder,
-					\OC::$server->getAppManager()
+					OC::$server->get(IAppManager::class)
 				));
 				// custom properties plugin must be the last one
 				$server->addPlugin(
-					new \Sabre\DAV\PropertyStorage\Plugin(
-						new \OCA\DAV\DAV\CustomPropertiesBackend(
+					new PropertyStoragePlugin(
+						new CustomPropertiesBackend(
 							$objectTree,
 							$this->databaseConnection,
 							$this->userSession->getUser()
@@ -209,14 +228,14 @@ class ServerFactory {
 					)
 				);
 			}
-			$server->addPlugin(new \OCA\DAV\Connector\Sabre\CopyEtagHeaderPlugin());
+			$server->addPlugin(new CopyEtagHeaderPlugin());
 
 			// Load dav plugins from apps
 			$event = new SabrePluginEvent($server);
 			$this->eventDispatcher->dispatch($event);
 			$pluginManager = new PluginManager(
-				\OC::$server,
-				\OC::$server->getAppManager()
+				OC::$server,
+				OC::$server->get(IAppManager::class)
 			);
 			foreach ($pluginManager->getAppPlugins() as $appPlugin) {
 				$server->addPlugin($appPlugin);

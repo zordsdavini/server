@@ -30,54 +30,49 @@ use OCA\DAV\CalDAV\Publishing\PublishPlugin;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\IURLGenerator;
+use PHPUnit\Framework\MockObject\MockObject;
 use Sabre\DAV\Server;
 use Sabre\DAV\SimpleCollection;
 use Sabre\HTTP\Request;
 use Sabre\HTTP\Response;
 use Test\TestCase;
 
-class PluginTest extends TestCase {
+class PublishingTest extends TestCase {
 
 	/** @var PublishPlugin */
 	private $plugin;
-	/** @var Server */
-	private $server;
-	/** @var Calendar | \PHPUnit\Framework\MockObject\MockObject */
+	/** @var Calendar | MockObject */
 	private $book;
-	/** @var IConfig | \PHPUnit\Framework\MockObject\MockObject */
-	private $config;
-	/** @var IURLGenerator | \PHPUnit\Framework\MockObject\MockObject */
-	private $urlGenerator;
 
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->config = $this->getMockBuilder(IConfig::class)->
+		$config = $this->getMockBuilder(IConfig::class)->
 			disableOriginalConstructor()->
 			getMock();
-		$this->config->expects($this->any())->method('getSystemValue')
+		$config->expects($this->any())->method('getSystemValue')
 			->with($this->equalTo('secret'))
 			->willReturn('mysecret');
 
-		$this->urlGenerator = $this->getMockBuilder(IURLGenerator::class)->
+		$urlGenerator = $this->getMockBuilder(IURLGenerator::class)->
 			disableOriginalConstructor()->
 			getMock();
 
 		/** @var IRequest $request */
-		$this->plugin = new PublishPlugin($this->config, $this->urlGenerator);
+		$this->plugin = new PublishPlugin($config, $urlGenerator);
 
 		$root = new SimpleCollection('calendars');
-		$this->server = new Server($root);
+		$server = new Server($root);
 		/** @var SimpleCollection $node */
 		$this->book = $this->getMockBuilder(Calendar::class)->
 			disableOriginalConstructor()->
 			getMock();
 		$this->book->method('getName')->willReturn('cal1');
 		$root->addChild($this->book);
-		$this->plugin->initialize($this->server);
+		$this->plugin->initialize($server);
 	}
 
-	public function testPublishing() {
+	public function testPublishing(): void {
 		$this->book->expects($this->once())->method('setPublishStatus')->with(true);
 
 		// setup request
@@ -88,7 +83,7 @@ class PluginTest extends TestCase {
 		$this->plugin->httpPost($request, $response);
 	}
 
-	public function testUnPublishing() {
+	public function testUnPublishing(): void {
 		$this->book->expects($this->once())->method('setPublishStatus')->with(false);
 
 		// setup request

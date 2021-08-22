@@ -35,6 +35,7 @@ use OCP\BackgroundJob\IJobList;
 use OCP\BackgroundJob\Job;
 use OCP\IConfig;
 use OCP\ILogger;
+use Psr\Log\LoggerInterface;
 use Sabre\VObject\DateTimeParser;
 use Sabre\VObject\InvalidDataException;
 
@@ -50,7 +51,7 @@ class RefreshWebcalJob extends Job {
 	 */
 	private $config;
 
-	/** @var ILogger */
+	/** @var LoggerInterface */
 	private $logger;
 
 	/** @var ITimeFactory */
@@ -61,10 +62,10 @@ class RefreshWebcalJob extends Job {
 	 *
 	 * @param RefreshWebcalService $refreshWebcalService
 	 * @param IConfig $config
-	 * @param ILogger $logger
+	 * @param LoggerInterface $logger
 	 * @param ITimeFactory $timeFactory
 	 */
-	public function __construct(RefreshWebcalService $refreshWebcalService, IConfig $config, ILogger $logger, ITimeFactory $timeFactory) {
+	public function __construct(RefreshWebcalService $refreshWebcalService, IConfig $config, LoggerInterface $logger, ITimeFactory $timeFactory) {
 		parent::__construct($timeFactory);
 		$this->refreshWebcalService = $refreshWebcalService;
 		$this->config = $config;
@@ -95,7 +96,7 @@ class RefreshWebcalJob extends Job {
 			/** @var DateInterval $dateInterval */
 			$dateInterval = DateTimeParser::parseDuration($refreshRate);
 		} catch (InvalidDataException $ex) {
-			$this->logger->logException($ex);
+			$this->logger->error($ex->getMessage(), ['exception' => $ex]);
 			$this->logger->warning("Subscription $subscriptionId could not be refreshed, refreshrate in database is invalid");
 			return;
 		}

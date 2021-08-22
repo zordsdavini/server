@@ -59,7 +59,6 @@ class SystemTagsRelationsCollection extends SimpleCollection {
 				$tagManager,
 				$tagMapper,
 				$userSession,
-				$groupManager,
 				function ($name) {
 					$nodes = \OC::$server->getUserFolder()->getById((int)$name);
 					return !empty($nodes);
@@ -76,7 +75,6 @@ class SystemTagsRelationsCollection extends SimpleCollection {
 				$tagManager,
 				$tagMapper,
 				$userSession,
-				$groupManager,
 				$entityExistsFunction
 			);
 		}

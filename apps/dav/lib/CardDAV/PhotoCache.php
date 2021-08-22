@@ -34,7 +34,7 @@ use OCP\Files\NotFoundException;
 use OCP\Files\NotPermittedException;
 use OCP\Files\SimpleFS\ISimpleFile;
 use OCP\Files\SimpleFS\ISimpleFolder;
-use OCP\ILogger;
+use Psr\Log\LoggerInterface;
 use Sabre\CardDAV\Card;
 use Sabre\VObject\Document;
 use Sabre\VObject\Parameter;
@@ -54,16 +54,16 @@ class PhotoCache {
 	/** @var IAppData */
 	protected $appData;
 
-	/** @var ILogger */
+	/** @var LoggerInterface */
 	protected $logger;
 
 	/**
 	 * PhotoCache constructor.
 	 *
 	 * @param IAppData $appData
-	 * @param ILogger $logger
+	 * @param LoggerInterface $logger
 	 */
-	public function __construct(IAppData $appData, ILogger $logger) {
+	public function __construct(IAppData $appData, LoggerInterface $logger) {
 		$this->appData = $appData;
 		$this->logger = $logger;
 	}
@@ -77,7 +77,7 @@ class PhotoCache {
 	 * @return ISimpleFile
 	 * @throws NotFoundException
 	 */
-	public function get($addressBookId, $cardUri, $size, Card $card) {
+	public function get(int $addressBookId, string $cardUri, int $size, Card $card) {
 		$folder = $this->getFolder($addressBookId, $cardUri);
 
 		if ($this->isEmpty($folder)) {
@@ -99,7 +99,7 @@ class PhotoCache {
 	 * @param ISimpleFolder $folder
 	 * @return bool
 	 */
-	private function isEmpty(ISimpleFolder $folder) {
+	private function isEmpty(ISimpleFolder $folder): bool {
 		return $folder->getDirectoryListing() === [];
 	}
 
@@ -128,11 +128,11 @@ class PhotoCache {
 		$file->putContent($data['body']);
 	}
 
-	private function hasPhoto(ISimpleFolder $folder) {
+	private function hasPhoto(ISimpleFolder $folder): bool {
 		return !$folder->fileExists('nophoto');
 	}
 
-	private function getFile(ISimpleFolder $folder, $size) {
+	private function getFile(ISimpleFolder $folder, $size): ISimpleFile {
 		$ext = $this->getExtension($folder);
 
 		if ($size === -1) {
@@ -149,7 +149,6 @@ class PhotoCache {
 			}
 
 			$photo = new \OC_Image();
-			/** @var ISimpleFile $file */
 			$file = $folder->getFile('photo.' . $ext);
 			$photo->loadFromData($file->getContent());
 
@@ -184,9 +183,9 @@ class PhotoCache {
 		} catch (NotFoundException $e) {
 			if ($createIfNotExists) {
 				return $this->appData->newFolder($hash);
-			} else {
-				throw $e;
 			}
+
+			throw $e;
 		}
 	}
 
@@ -216,8 +215,8 @@ class PhotoCache {
 			$vObject = $this->readCard($node->get());
 			return $this->getPhotoFromVObject($vObject);
 		} catch (\Exception $e) {
-			$this->logger->logException($e, [
-				'message' => 'Exception during vcard photo parsing'
+			$this->logger->error('Exception during vcard photo parsing', [
+				'exception' => $e->getMessage()
 			]);
 		}
 		return false;
@@ -262,8 +261,8 @@ class PhotoCache {
 				'body' => $val
 			];
 		} catch (\Exception $e) {
-			$this->logger->logException($e, [
-				'message' => 'Exception during vcard photo parsing'
+			$this->logger->error('Exception during vcard photo parsing', [
+				'exception' => $e
 			]);
 		}
 		return false;
@@ -271,9 +270,9 @@ class PhotoCache {
 
 	/**
 	 * @param string $cardData
-	 * @return \Sabre\VObject\Document
+	 * @return Document
 	 */
-	private function readCard($cardData) {
+	private function readCard(string $cardData): Document {
 		return Reader::read($cardData);
 	}
 
@@ -281,18 +280,18 @@ class PhotoCache {
 	 * @param Binary $photo
 	 * @return string
 	 */
-	private function getBinaryType(Binary $photo) {
+	private function getBinaryType(Binary $photo): string {
 		$params = $photo->parameters();
 		if (isset($params['TYPE']) || isset($params['MEDIATYPE'])) {
 			/** @var Parameter $typeParam */
-			$typeParam = isset($params['TYPE']) ? $params['TYPE'] : $params['MEDIATYPE'];
+			$typeParam = $params['TYPE'] ?? $params['MEDIATYPE'];
 			$type = $typeParam->getValue();
 
 			if (strpos($type, 'image/') === 0) {
 				return $type;
-			} else {
-				return 'image/' . strtolower($type);
 			}
+
+			return 'image/' . strtolower($type);
 		}
 		return '';
 	}
@@ -302,7 +301,7 @@ class PhotoCache {
 	 * @param string $cardUri
 	 * @throws NotPermittedException
 	 */
-	public function delete($addressBookId, $cardUri) {
+	public function delete(int $addressBookId, string $cardUri): void {
 		try {
 			$folder = $this->getFolder($addressBookId, $cardUri, false);
 			$folder->delete();

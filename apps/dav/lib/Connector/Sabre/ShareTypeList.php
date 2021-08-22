@@ -44,7 +44,7 @@ class ShareTypeList implements Element {
 	/**
 	 * @param int[] $shareTypes
 	 */
-	public function __construct($shareTypes) {
+	public function __construct(array $shareTypes) {
 		$this->shareTypes = $shareTypes;
 	}
 

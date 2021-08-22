@@ -183,7 +183,7 @@ class ReminderService {
 		$recurrenceExceptions = $this->getRecurrenceExceptionFromListOfVEvents($vevents);
 		$masterItem = $this->getMasterItemFromListOfVEvents($vevents);
 		$now = $this->timeFactory->getDateTime();
-		$isRecurring = $masterItem ? $this->isRecurring($masterItem) : false;
+		$isRecurring = $masterItem && $this->isRecurring($masterItem);
 
 		foreach ($recurrenceExceptions as $recurrenceException) {
 			$eventHash = $this->getEventHash($recurrenceException);
@@ -332,7 +332,6 @@ class ReminderService {
 
 		$recurrenceId = $this->getEffectiveRecurrenceIdOfVEvent($valarm->parent);
 		$isRelative = $this->isAlarmRelative($valarm);
-		/** @var DateTimeImmutable $notificationDate */
 		$notificationDate = $valarm->getEffectiveTriggerTime();
 		$clonedNotificationDate = new \DateTime('now', $notificationDate->getTimezone());
 		$clonedNotificationDate->setTimestamp($notificationDate->getTimestamp());

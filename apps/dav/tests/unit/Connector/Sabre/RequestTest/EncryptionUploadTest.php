@@ -25,7 +25,10 @@
 namespace OCA\DAV\Tests\unit\Connector\Sabre\RequestTest;
 
 use OC\Files\View;
+use OCP\IConfig;
+use OCP\ITempManager;
 use Test\Traits\EncryptionTrait;
+use OC\Files\Storage\Local;
 
 /**
  * Class EncryptionUploadTest
@@ -37,12 +40,12 @@ use Test\Traits\EncryptionTrait;
 class EncryptionUploadTest extends UploadTest {
 	use EncryptionTrait;
 
-	protected function setupUser($name, $password) {
+	protected function setupUser($name, $password): View {
 		$this->createUser($name, $password);
-		$tmpFolder = \OC::$server->getTempManager()->getTemporaryFolder();
-		$this->registerMount($name, '\OC\Files\Storage\Local', '/' . $name, ['datadir' => $tmpFolder]);
+		$tmpFolder = \OC::$server->get(ITempManager::class)->getTemporaryFolder();
+		$this->registerMount($name, Local::class, '/' . $name, ['datadir' => $tmpFolder]);
 		// we use per-user keys
-		\OC::$server->getConfig()->setAppValue('encryption', 'useMasterKey', '0');
+		\OC::$server->get(IConfig::class)->setAppValue('encryption', 'useMasterKey', '0');
 		$this->setupForUser($name, $password);
 		$this->loginWithEncryption($name);
 		return new View('/' . $name . '/files');

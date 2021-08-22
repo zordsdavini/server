@@ -32,7 +32,7 @@ class CachingTree extends Tree {
 	 * @param Node $node
 	 * @param null|string $path
 	 */
-	public function cacheNode(Node $node, $path = null) {
+	public function cacheNode(Node $node, string $path = null): void {
 		if (is_null($path)) {
 			$path = $node->getPath();
 		}
@@ -45,7 +45,7 @@ class CachingTree extends Tree {
 		$path = trim($path, '/');
 		foreach ($this->cache as $nodePath => $node) {
 			$nodePath = (string) $nodePath;
-			if ('' === $path || $nodePath == $path || 0 === strpos($nodePath, $path.'/')) {
+			if ('' === $path || $nodePath === $path || 0 === strpos($nodePath, $path.'/')) {
 				unset($this->cache[$nodePath]);
 			}
 		}

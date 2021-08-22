@@ -83,9 +83,9 @@ class PublicAuth implements BackendInterface {
 	 * @param RequestInterface $request
 	 * @return bool
 	 */
-	private function isRequestPublic(RequestInterface $request) {
+	private function isRequestPublic(RequestInterface $request): bool {
 		$url = $request->getPath();
-		$matchingUrls = array_filter($this->publicURLs, function ($publicUrl) use ($url) {
+		$matchingUrls = array_filter($this->publicURLs, static function ($publicUrl) use ($url) {
 			return strpos($url, $publicUrl, 0) === 0;
 		});
 		return !empty($matchingUrls);

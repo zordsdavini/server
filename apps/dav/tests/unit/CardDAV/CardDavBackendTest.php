@@ -48,6 +48,7 @@ use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\L10N\IFactory;
 use OCP\Share\IManager as ShareManager;
+use PHPUnit\Framework\MockObject\MockObject;
 use Sabre\DAV\Exception\BadRequest;
 use Sabre\DAV\PropPatch;
 use Sabre\VObject\Component\VCard;
@@ -68,19 +69,19 @@ class CardDavBackendTest extends TestCase {
 	/** @var CardDavBackend */
 	private $backend;
 
-	/** @var Principal | \PHPUnit\Framework\MockObject\MockObject */
+	/** @var Principal | MockObject */
 	private $principal;
 
-	/** @var IUserManager|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IUserManager|MockObject */
 	private $userManager;
 
-	/** @var IGroupManager|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IGroupManager|MockObject */
 	private $groupManager;
 
-	/** @var EventDispatcherInterface|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var EventDispatcherInterface|MockObject */
 	private $legacyDispatcher;
 
-	/** @var IEventDispatcher|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IEventDispatcher|MockObject */
 	private $dispatcher;
 
 	/** @var  IDBConnection */
@@ -157,7 +158,7 @@ class CardDavBackendTest extends TestCase {
 		$this->dispatcher = $this->createMock(IEventDispatcher::class);
 		$this->legacyDispatcher = $this->createMock(EventDispatcherInterface::class);
 
-		$this->db = \OC::$server->getDatabaseConnection();
+		$this->db = \OC::$server->get(IDBConnection::class);
 
 		$this->backend = new CardDavBackend($this->db, $this->principal, $this->userManager, $this->groupManager, $this->dispatcher, $this->legacyDispatcher);
 		// start every test with a empty cards_properties and cards table
@@ -247,7 +248,7 @@ class CardDavBackendTest extends TestCase {
 
 	public function testCardOperations() {
 
-		/** @var CardDavBackend | \PHPUnit\Framework\MockObject\MockObject $backend */
+		/** @var CardDavBackend | MockObject $backend */
 		$backend = $this->getMockBuilder(CardDavBackend::class)
 				->setConstructorArgs([$this->db, $this->principal, $this->userManager, $this->groupManager, $this->dispatcher, $this->legacyDispatcher])
 				->setMethods(['updateProperties', 'purgeProperties'])->getMock();

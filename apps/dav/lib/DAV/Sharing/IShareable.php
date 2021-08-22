@@ -49,7 +49,7 @@ interface IShareable extends INode {
 	 * @param array $remove
 	 * @return void
 	 */
-	public function updateShares(array $add, array $remove);
+	public function updateShares(array $add, array $remove): void;
 
 	/**
 	 * Returns the list of people whom this resource is shared with.
@@ -63,15 +63,15 @@ interface IShareable extends INode {
 	 *
 	 * @return array
 	 */
-	public function getShares();
+	public function getShares(): array;
 
 	/**
 	 * @return int
 	 */
-	public function getResourceId();
+	public function getResourceId(): int;
 
 	/**
 	 * @return string
 	 */
-	public function getOwner();
+	public function getOwner(): string;
 }

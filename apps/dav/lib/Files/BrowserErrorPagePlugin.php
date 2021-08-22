@@ -56,7 +56,7 @@ class BrowserErrorPagePlugin extends ServerPlugin {
 	 * @param IRequest $request
 	 * @return bool
 	 */
-	public static function isBrowserRequest(IRequest $request) {
+	public static function isBrowserRequest(IRequest $request): bool {
 		if ($request->getMethod() !== 'GET') {
 			return false;
 		}
@@ -72,7 +72,7 @@ class BrowserErrorPagePlugin extends ServerPlugin {
 	/**
 	 * @param \Exception $ex
 	 */
-	public function logException(\Exception $ex) {
+	public function logException(\Exception $ex): void {
 		if ($ex instanceof Exception) {
 			$httpCode = $ex->getHTTPCode();
 			$headers = $ex->getHTTPHeaders($this->server);
@@ -91,10 +91,11 @@ class BrowserErrorPagePlugin extends ServerPlugin {
 
 	/**
 	 * @codeCoverageIgnore
-	 * @return bool|string
+	 * @param int $httpCode
+	 * @return string
 	 */
-	public function generateBody(int $httpCode) {
-		$request = \OC::$server->getRequest();
+	public function generateBody(int $httpCode): string {
+		$request = \OC::$server->get(IRequest::class);
 
 		$templateName = 'exception';
 		if ($httpCode === 403 || $httpCode === 404) {
@@ -111,8 +112,8 @@ class BrowserErrorPagePlugin extends ServerPlugin {
 	/**
 	 * @codeCoverageIgnore
 	 */
-	public function sendResponse() {
-		$this->server->sapi->sendResponse($this->server->httpResponse);
+	public function sendResponse(): void {
+		$this->server->sapi::sendResponse($this->server->httpResponse);
 		exit();
 	}
 }

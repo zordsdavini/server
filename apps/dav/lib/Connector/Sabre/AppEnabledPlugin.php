@@ -45,15 +45,15 @@ class AppEnabledPlugin extends ServerPlugin {
 	private $app;
 
 	/**
-	 * @var \OCP\App\IAppManager
+	 * @var IAppManager
 	 */
 	private $appManager;
 
 	/**
 	 * @param string $app
-	 * @param \OCP\App\IAppManager $appManager
+	 * @param IAppManager $appManager
 	 */
-	public function __construct($app, IAppManager $appManager) {
+	public function __construct(string $app, IAppManager $appManager) {
 		$this->app = $app;
 		$this->appManager = $appManager;
 	}
@@ -77,10 +77,10 @@ class AppEnabledPlugin extends ServerPlugin {
 	/**
 	 * This method is called before any HTTP after auth and checks if the user has access to the app
 	 *
-	 * @throws \Sabre\DAV\Exception\Forbidden
-	 * @return bool
+	 * @return void
+	 * @throws Forbidden
 	 */
-	public function checkAppEnabled() {
+	public function checkAppEnabled(): void {
 		if (!$this->appManager->isEnabledForUser($this->app)) {
 			throw new Forbidden();
 		}

@@ -70,7 +70,7 @@ class PluginTest extends TestCase {
 		$this->plugin->initialize($this->server);
 	}
 
-	public function testInitialize() {
+	public function testInitialize(): void {
 		$plugin = new Plugin($this->config);
 
 		$this->server->expects($this->at(7))
@@ -88,7 +88,7 @@ class PluginTest extends TestCase {
 		$plugin->initialize($this->server);
 	}
 
-	public function testGetAddressesForPrincipal() {
+	public function testGetAddressesForPrincipal(): void {
 		$href = $this->createMock(Href::class);
 		$href
 			->expects($this->once())
@@ -107,12 +107,12 @@ class PluginTest extends TestCase {
 				'{urn:ietf:params:xml:ns:caldav}calendar-user-address-set' => $href
 			]);
 
-		$result = $this->invokePrivate($this->plugin, 'getAddressesForPrincipal', ['MyPrincipal']);
+		$result = self::invokePrivate($this->plugin, 'getAddressesForPrincipal', ['MyPrincipal']);
 		$this->assertSame(['lukas@nextcloud.com', 'rullzer@nextcloud.com'], $result);
 	}
 
 
-	public function testGetAddressesForPrincipalEmpty() {
+	public function testGetAddressesForPrincipalEmpty(): void {
 		$this->server
 			->expects($this->once())
 			->method('getProperties')
@@ -124,16 +124,16 @@ class PluginTest extends TestCase {
 			)
 			->willReturn(null);
 
-		$result = $this->invokePrivate($this->plugin, 'getAddressesForPrincipal', ['MyPrincipal']);
+		$result = self::invokePrivate($this->plugin, 'getAddressesForPrincipal', ['MyPrincipal']);
 		$this->assertSame([], $result);
 	}
 
-	public function testStripOffMailTo() {
-		$this->assertEquals('test@example.com', $this->invokePrivate($this->plugin, 'stripOffMailTo', ['test@example.com']));
-		$this->assertEquals('test@example.com', $this->invokePrivate($this->plugin, 'stripOffMailTo', ['mailto:test@example.com']));
+	public function testStripOffMailTo(): void {
+		$this->assertEquals('test@example.com', self::invokePrivate($this->plugin, 'stripOffMailTo', ['test@example.com']));
+		$this->assertEquals('test@example.com', self::invokePrivate($this->plugin, 'stripOffMailTo', ['mailto:test@example.com']));
 	}
 
-	public function testGetAttendeeRSVP() {
+	public function testGetAttendeeRSVP(): void {
 		$property1 = $this->createMock(CalAddress::class);
 		$parameter1 = $this->createMock(Parameter::class);
 		$property1->expects($this->once())
@@ -162,9 +162,9 @@ class PluginTest extends TestCase {
 			->with('RSVP')
 			->willReturn(null);
 
-		$this->assertTrue($this->invokePrivate($this->plugin, 'getAttendeeRSVP', [$property1]));
-		$this->assertFalse($this->invokePrivate($this->plugin, 'getAttendeeRSVP', [$property2]));
-		$this->assertFalse($this->invokePrivate($this->plugin, 'getAttendeeRSVP', [$property3]));
+		$this->assertTrue(self::invokePrivate($this->plugin, 'getAttendeeRSVP', [$property1]));
+		$this->assertFalse(self::invokePrivate($this->plugin, 'getAttendeeRSVP', [$property2]));
+		$this->assertFalse(self::invokePrivate($this->plugin, 'getAttendeeRSVP', [$property3]));
 	}
 
 	public function propFindDefaultCalendarUrlProvider(): array {
@@ -240,15 +240,14 @@ class PluginTest extends TestCase {
 	/**
 	 * @dataProvider propFindDefaultCalendarUrlProvider
 	 * @param string $principalUri
-	 * @param string $calendarHome
+	 * @param string|null $calendarHome
 	 * @param bool $isResource
 	 * @param string $calendarUri
 	 * @param string $displayName
 	 * @param bool $exists
 	 * @param bool $propertiesForPath
 	 */
-	public function testPropFindDefaultCalendarUrl(string $principalUri, ?string $calendarHome, bool $isResource, string $calendarUri, string $displayName, bool $exists, bool $propertiesForPath = true) {
-		/** @var PropFind $propFind */
+	public function testPropFindDefaultCalendarUrl(string $principalUri, ?string $calendarHome, bool $isResource, string $calendarUri, string $displayName, bool $exists, bool $propertiesForPath = true): void {
 		$propFind = new PropFind(
 			$principalUri,
 			[

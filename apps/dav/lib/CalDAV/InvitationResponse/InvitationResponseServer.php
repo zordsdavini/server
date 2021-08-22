@@ -26,19 +26,30 @@
 namespace OCA\DAV\CalDAV\InvitationResponse;
 
 use OCA\DAV\AppInfo\PluginManager;
+use OCA\DAV\CalDAV\Publishing\PublishPlugin;
 use OCA\DAV\Connector\Sabre\AnonymousOptionsPlugin;
 use OCA\DAV\Connector\Sabre\BlockLegacyClientPlugin;
 use OCA\DAV\Connector\Sabre\CachingTree;
 use OCA\DAV\Connector\Sabre\DavAclPlugin;
+use OCA\DAV\Connector\Sabre\ExceptionLoggerPlugin;
+use OCA\DAV\Connector\Sabre\LockPlugin;
+use OCA\DAV\Connector\Sabre\MaintenancePlugin;
+use OCA\DAV\Connector\Sabre\Server;
 use OCA\DAV\Events\SabrePluginAuthInitEvent;
 use OCA\DAV\RootCollection;
+use OCP\App\IAppManager;
 use OCP\EventDispatcher\IEventDispatcher;
+use OCP\IConfig;
+use OCP\IURLGenerator;
+use OCP\L10N\IFactory;
+use Psr\Log\LoggerInterface;
+use Sabre\CalDAV\ICSExportPlugin;
 use Sabre\DAV\Auth\Plugin;
 use Sabre\VObject\ITip\Message;
 
 class InvitationResponseServer {
 
-	/** @var \OCA\DAV\Connector\Sabre\Server */
+	/** @var Server */
 	public $server;
 
 	/**
@@ -46,24 +57,26 @@ class InvitationResponseServer {
 	 */
 	public function __construct() {
 		$baseUri = \OC::$WEBROOT . '/remote.php/dav/';
-		$logger = \OC::$server->getLogger();
+		$logger = \OC::$server->get(LoggerInterface::class);
+		$config = \OC::$server->get(IConfig::class);
+		$languageFactory = \OC::$server->get(IFactory::class)->get('dav');
 		/** @var IEventDispatcher $dispatcher */
-		$dispatcher = \OC::$server->query(IEventDispatcher::class);
+		$dispatcher = \OC::$server->get(IEventDispatcher::class);
 
 		$root = new RootCollection();
-		$this->server = new \OCA\DAV\Connector\Sabre\Server(new CachingTree($root));
+		$this->server = new Server(new CachingTree($root));
 
 		// Add maintenance plugin
-		$this->server->addPlugin(new \OCA\DAV\Connector\Sabre\MaintenancePlugin(\OC::$server->getConfig(), \OC::$server->getL10N('dav')));
+		$this->server->addPlugin(new MaintenancePlugin($config, $languageFactory));
 
 		// Set URL explicitly due to reverse-proxy situations
 		$this->server->httpRequest->setUrl($baseUri);
 		$this->server->setBaseUri($baseUri);
 
-		$this->server->addPlugin(new BlockLegacyClientPlugin(\OC::$server->getConfig()));
+		$this->server->addPlugin(new BlockLegacyClientPlugin($config));
 		$this->server->addPlugin(new AnonymousOptionsPlugin());
 		$this->server->addPlugin(new class() extends Plugin {
-			public function getCurrentPrincipal() {
+			public function getCurrentPrincipal(): string {
 				return 'principals/system/public';
 			}
 		});
@@ -72,8 +85,8 @@ class InvitationResponseServer {
 		$event = new SabrePluginAuthInitEvent($this->server);
 		$dispatcher->dispatchTyped($event);
 
-		$this->server->addPlugin(new \OCA\DAV\Connector\Sabre\ExceptionLoggerPlugin('webdav', $logger));
-		$this->server->addPlugin(new \OCA\DAV\Connector\Sabre\LockPlugin());
+		$this->server->addPlugin(new ExceptionLoggerPlugin('webdav', $logger));
+		$this->server->addPlugin(new LockPlugin());
 		$this->server->addPlugin(new \Sabre\DAV\Sync\Plugin());
 
 		// acl
@@ -86,14 +99,14 @@ class InvitationResponseServer {
 
 		// calendar plugins
 		$this->server->addPlugin(new \OCA\DAV\CalDAV\Plugin());
-		$this->server->addPlugin(new \Sabre\CalDAV\ICSExportPlugin());
-		$this->server->addPlugin(new \OCA\DAV\CalDAV\Schedule\Plugin(\OC::$server->getConfig()));
+		$this->server->addPlugin(new ICSExportPlugin());
+		$this->server->addPlugin(new \OCA\DAV\CalDAV\Schedule\Plugin($config));
 		$this->server->addPlugin(new \Sabre\CalDAV\Subscriptions\Plugin());
 		$this->server->addPlugin(new \Sabre\CalDAV\Notifications\Plugin());
 		//$this->server->addPlugin(new \OCA\DAV\DAV\Sharing\Plugin($authBackend, \OC::$server->getRequest()));
-		$this->server->addPlugin(new \OCA\DAV\CalDAV\Publishing\PublishPlugin(
-			\OC::$server->getConfig(),
-			\OC::$server->getURLGenerator()
+		$this->server->addPlugin(new PublishPlugin(
+			$config,
+			\OC::$server->get(IURLGenerator::class)
 		));
 
 		// wait with registering these until auth is handled and the filesystem is setup
@@ -101,7 +114,7 @@ class InvitationResponseServer {
 			// register plugins from apps
 			$pluginManager = new PluginManager(
 				\OC::$server,
-				\OC::$server->getAppManager()
+				\OC::$server->get(IAppManager::class)
 			);
 			foreach ($pluginManager->getAppPlugins() as $appPlugin) {
 				$this->server->addPlugin($appPlugin);
@@ -116,7 +129,7 @@ class InvitationResponseServer {
 	 * @param Message $iTipMessage
 	 * @return void
 	 */
-	public function handleITipMessage(Message $iTipMessage) {
+	public function handleITipMessage(Message $iTipMessage): void {
 		/** @var \OCA\DAV\CalDAV\Schedule\Plugin $schedulingPlugin */
 		$schedulingPlugin = $this->server->getPlugin('caldav-schedule');
 		$schedulingPlugin->scheduleLocalDelivery($iTipMessage);

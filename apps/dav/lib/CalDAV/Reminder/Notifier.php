@@ -30,6 +30,7 @@ declare(strict_types=1);
 namespace OCA\DAV\CalDAV\Reminder;
 
 use DateTime;
+use Exception;
 use OCA\DAV\AppInfo\Application;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
@@ -99,7 +100,7 @@ class Notifier implements INotifier {
 	 * @param INotification $notification
 	 * @param string $languageCode The code of the language that should be used to prepare the notification
 	 * @return INotification
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	public function prepare(INotification $notification,
 							string $languageCode):INotification {
@@ -218,7 +219,7 @@ class Notifier implements INotifier {
 	/**
 	 * @param array $parameters
 	 * @return string
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	private function generateDateString(array $parameters):string {
 		$startDateTime = DateTime::createFromFormat(\DateTimeInterface::ATOM, $parameters['start_atom']);

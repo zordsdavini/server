@@ -32,11 +32,12 @@ use OCP\SystemTag\TagNotFoundException;
 use Sabre\DAV\Exception\Forbidden;
 use Sabre\DAV\Exception\MethodNotAllowed;
 use Sabre\DAV\Exception\NotFound;
+use Sabre\DAV\INode;
 
 /**
  * Mapping node for system tag to object id
  */
-class SystemTagMappingNode implements \Sabre\DAV\INode {
+class SystemTagMappingNode implements INode {
 	/**
 	 * @var ISystemTag
 	 */
@@ -81,8 +82,8 @@ class SystemTagMappingNode implements \Sabre\DAV\INode {
 	 */
 	public function __construct(
 		ISystemTag $tag,
-		$objectId,
-		$objectType,
+		string $objectId,
+		string $objectType,
 		IUser $user,
 		ISystemTagManager $tagManager,
 		ISystemTagObjectMapper $tagMapper
@@ -100,7 +101,7 @@ class SystemTagMappingNode implements \Sabre\DAV\INode {
 	 *
 	 * @return string object id
 	 */
-	public function getObjectId() {
+	public function getObjectId(): string {
 		return $this->objectId;
 	}
 
@@ -109,7 +110,7 @@ class SystemTagMappingNode implements \Sabre\DAV\INode {
 	 *
 	 * @return string object type
 	 */
-	public function getObjectType() {
+	public function getObjectType(): string {
 		return $this->objectType;
 	}
 
@@ -118,7 +119,7 @@ class SystemTagMappingNode implements \Sabre\DAV\INode {
 	 *
 	 * @return ISystemTag system tag
 	 */
-	public function getSystemTag() {
+	public function getSystemTag(): ISystemTag {
 		return $this->tag;
 	}
 
@@ -127,7 +128,7 @@ class SystemTagMappingNode implements \Sabre\DAV\INode {
 	 *
 	 * @return string
 	 */
-	public function getName() {
+	public function getName(): string {
 		return $this->tag->getId();
 	}
 

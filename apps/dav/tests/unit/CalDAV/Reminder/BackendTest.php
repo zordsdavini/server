@@ -30,6 +30,7 @@ namespace OCA\DAV\Tests\unit\CalDAV\Reminder;
 
 use OCA\DAV\CalDAV\Reminder\Backend as ReminderBackend;
 use OCP\AppFramework\Utility\ITimeFactory;
+use PHPUnit\Framework\MockObject\MockObject;
 use Test\TestCase;
 
 class BackendTest extends TestCase {
@@ -37,11 +38,11 @@ class BackendTest extends TestCase {
 	/**
 	 * Reminder Backend
 	 *
-	 * @var ReminderBackend|\PHPUnit\Framework\MockObject\MockObject
+	 * @var ReminderBackend|MockObject
 	 */
 	private $reminderBackend;
 
-	/** @var ITimeFactory|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var ITimeFactory|MockObject */
 	private $timeFactory;
 
 	protected function setUp(): void {
@@ -127,7 +128,7 @@ class BackendTest extends TestCase {
 	}
 
 	public function testGetRemindersToProcess(): void {
-		$this->timeFactory->expects($this->exactly(1))
+		$this->timeFactory->expects($this->once())
 			->method('getTime')
 			->with()
 			->willReturn(123457);
@@ -135,10 +136,9 @@ class BackendTest extends TestCase {
 		$rows = $this->reminderBackend->getRemindersToProcess();
 
 		$this->assertCount(2, $rows);
-		unset($rows[0]['id']);
-		unset($rows[1]['id']);
+		unset($rows[0]['id'], $rows[1]['id']);
 
-		$this->assertEquals($rows[0], [
+		$this->assertEquals([
 			'calendar_id' => 1,
 			'object_id' => 1,
 			'uid' => 'asd',
@@ -154,8 +154,8 @@ class BackendTest extends TestCase {
 			'calendardata' => 'Calendar data 123',
 			'displayname' => 'Displayname 123',
 			'principaluri' => 'principals/users/user001',
-		]);
-		$this->assertEquals($rows[1], [
+		], $rows[0]);
+		$this->assertEquals([
 			'calendar_id' => 1,
 			'object_id' => 1,
 			'uid' => 'asd',
@@ -171,17 +171,16 @@ class BackendTest extends TestCase {
 			'calendardata' => 'Calendar data 123',
 			'displayname' => 'Displayname 123',
 			'principaluri' => 'principals/users/user001',
-		]);
+		], $rows[1]);
 	}
 
 	public function testGetAllScheduledRemindersForEvent(): void {
 		$rows = $this->reminderBackend->getAllScheduledRemindersForEvent(1);
 
 		$this->assertCount(2, $rows);
-		unset($rows[0]['id']);
-		unset($rows[1]['id']);
+		unset($rows[0]['id'], $rows[1]['id']);
 
-		$this->assertEquals($rows[0], [
+		$this->assertEquals([
 			'calendar_id' => 1,
 			'object_id' => 1,
 			'uid' => 'asd',
@@ -194,8 +193,8 @@ class BackendTest extends TestCase {
 			'is_relative' => true,
 			'notification_date' => 123456,
 			'is_repeat_based' => false,
-		]);
-		$this->assertEquals($rows[1], [
+		], $rows[0]);
+		$this->assertEquals([
 			'calendar_id' => 1,
 			'object_id' => 1,
 			'uid' => 'asd',
@@ -208,7 +207,7 @@ class BackendTest extends TestCase {
 			'is_relative' => true,
 			'notification_date' => 123456,
 			'is_repeat_based' => false,
-		]);
+		], $rows[1]);
 	}
 
 	public function testInsertReminder(): void {
@@ -233,7 +232,7 @@ class BackendTest extends TestCase {
 
 		unset($rows[4]['id']);
 
-		$this->assertEquals($rows[4], [
+		$this->assertEquals([
 			'calendar_id' => '42',
 			'object_id' => '1337',
 			'is_recurring' => '1',
@@ -246,10 +245,10 @@ class BackendTest extends TestCase {
 			'is_relative' => '0',
 			'notification_date' => '12345670',
 			'is_repeat_based' => '0',
-		]);
+		], $rows[4]);
 	}
 
-	public function testUpdateReminder() {
+	public function testUpdateReminder(): void {
 		$query = self::$realDatabase->getQueryBuilder();
 		$rows = $query->select('*')
 			->from('calendar_reminders')
@@ -258,7 +257,7 @@ class BackendTest extends TestCase {
 
 		$this->assertCount(4, $rows);
 
-		$this->assertEquals($rows[3]['notification_date'], 123600);
+		$this->assertEquals(123600, $rows[3]['notification_date']);
 
 		$reminderId = (int)  $rows[3]['id'];
 		$newNotificationDate = 123700;
@@ -272,7 +271,7 @@ class BackendTest extends TestCase {
 			->execute()
 			->fetch();
 
-		$this->assertEquals((int) $row['notification_date'], 123700);
+		$this->assertEquals(123700, (int) $row['notification_date']);
 	}
 
 

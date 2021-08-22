@@ -20,6 +20,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
+
+use Sabre\DAV\Client;
+
 require '../../../../3rdparty/autoload.php';
 
 if ($argc !== 6) {
@@ -27,18 +30,13 @@ if ($argc !== 6) {
 	exit;
 }
 
-/**
- * @param \Sabre\DAV\Client $client
- * @param $uploadUrl
- * @return mixed
- */
-function request($client, $method, $uploadUrl, $data = null, $headers = []) {
+function request(Client $client, string $method, string $uploadUrl, string $data = null, array $headers = []): array {
 	echo "$method $uploadUrl ... ";
 	$t0 = microtime(true);
 	$result = $client->request($method, $uploadUrl, $data, $headers);
 	$t1 = microtime(true);
 	echo $result['statusCode'] . " - " . ($t1 - $t0) . ' seconds' . PHP_EOL;
-	if (!in_array($result['statusCode'],  [200, 201])) {
+	if (!in_array($result['statusCode'], [200, 201], true)) {
 		echo $result['body'] . PHP_EOL;
 	}
 	return $result;
@@ -50,7 +48,7 @@ $password = $argv[3];
 $file = $argv[4];
 $chunkSize = $argv[5] * 1024 * 1024;
 
-$client = new \Sabre\DAV\Client([
+$client = new Client([
 	'baseUri' => $baseUri,
 	'userName' => $userName,
 	'password' => $password

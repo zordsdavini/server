@@ -32,20 +32,18 @@ use OCP\BackgroundJob\IJobList;
 use OCP\IConfig;
 use OCP\IUser;
 use OCP\IUserManager;
+use PHPUnit\Framework\MockObject\MockObject;
 use Test\TestCase;
 
 class RegisterRegenerateBirthdayCalendarsTest extends TestCase {
 
-	/** @var ITimeFactory | \PHPUnit\Framework\MockObject\MockObject */
-	private $time;
-
-	/** @var IUserManager | \PHPUnit\Framework\MockObject\MockObject */
+	/** @var IUserManager | MockObject */
 	private $userManager;
 
-	/** @var IJobList | \PHPUnit\Framework\MockObject\MockObject */
+	/** @var IJobList | MockObject */
 	private $jobList;
 
-	/** @var IConfig | \PHPUnit\Framework\MockObject\MockObject */
+	/** @var IConfig | MockObject */
 	private $config;
 
 	/** @var RegisterRegenerateBirthdayCalendars */
@@ -54,12 +52,12 @@ class RegisterRegenerateBirthdayCalendarsTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->time = $this->createMock(ITimeFactory::class);
+		$time = $this->createMock(ITimeFactory::class);
 		$this->userManager = $this->createMock(IUserManager::class);
 		$this->jobList = $this->createMock(IJobList::class);
 		$this->config = $this->createMock(IConfig::class);
 
-		$this->backgroundJob = new RegisterRegenerateBirthdayCalendars($this->time,
+		$this->backgroundJob = new RegisterRegenerateBirthdayCalendars($time,
 			$this->userManager, $this->jobList);
 	}
 

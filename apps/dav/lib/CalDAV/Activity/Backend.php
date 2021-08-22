@@ -68,7 +68,7 @@ class Backend {
 	 *
 	 * @param array $calendarData
 	 */
-	public function onCalendarAdd(array $calendarData) {
+	public function onCalendarAdd(array $calendarData): void {
 		$this->triggerCalendarActivity(Calendar::SUBJECT_ADD, $calendarData);
 	}
 
@@ -79,7 +79,7 @@ class Backend {
 	 * @param array $shares
 	 * @param array $properties
 	 */
-	public function onCalendarUpdate(array $calendarData, array $shares, array $properties) {
+	public function onCalendarUpdate(array $calendarData, array $shares, array $properties): void {
 		$this->triggerCalendarActivity(Calendar::SUBJECT_UPDATE, $calendarData, $shares, $properties);
 	}
 
@@ -119,7 +119,7 @@ class Backend {
 	 * @param array $calendarData
 	 * @param bool $publishStatus
 	 */
-	public function onCalendarPublication(array $calendarData, $publishStatus) {
+	public function onCalendarPublication(array $calendarData, bool $publishStatus): void {
 		$this->triggerCalendarActivity($publishStatus ? Calendar::SUBJECT_PUBLISH : Calendar::SUBJECT_UNPUBLISH, $calendarData);
 	}
 
@@ -131,7 +131,7 @@ class Backend {
 	 * @param array $shares
 	 * @param array $changedProperties
 	 */
-	protected function triggerCalendarActivity($action, array $calendarData, array $shares = [], array $changedProperties = []) {
+	protected function triggerCalendarActivity(string $action, array $calendarData, array $shares = [], array $changedProperties = []): void {
 		if (!isset($calendarData['principaluri'])) {
 			return;
 		}
@@ -189,7 +189,7 @@ class Backend {
 	 * @param array $add
 	 * @param array $remove
 	 */
-	public function onCalendarUpdateShares(array $calendarData, array $shares, array $add, array $remove) {
+	public function onCalendarUpdateShares(array $calendarData, array $shares, array $add, array $remove): void {
 		$principal = explode('/', $calendarData['principaluri']);
 		$owner = $principal[2];
 
@@ -356,7 +356,7 @@ class Backend {
 	 * @param array[] $shares
 	 * @return bool
 	 */
-	protected function isAlreadyShared($principal, $shares) {
+	protected function isAlreadyShared(string $principal, array $shares): bool {
 		foreach ($shares as $share) {
 			if ($principal === $share['href']) {
 				return true;
@@ -374,7 +374,7 @@ class Backend {
 	 * @param array $properties
 	 * @param string $subject
 	 */
-	protected function triggerActivityGroup($gid, IEvent $event, array $properties, $subject) {
+	protected function triggerActivityGroup(string $gid, IEvent $event, array $properties, string $subject): void {
 		$group = $this->groupManager->get($gid);
 
 		if ($group instanceof IGroup) {
@@ -396,7 +396,7 @@ class Backend {
 	 * @param string $subject
 	 * @param string $subjectSelf
 	 */
-	protected function triggerActivityUser($user, IEvent $event, array $properties, $subject, $subjectSelf = '') {
+	protected function triggerActivityUser(string $user, IEvent $event, array $properties, string $subject, string $subjectSelf = ''): void {
 		$event->setAffectedUser($user)
 			->setSubject(
 				$user === $event->getAuthor() && $subjectSelf ? $subjectSelf : $subject,
@@ -421,7 +421,7 @@ class Backend {
 	 * @param array $shares
 	 * @param array $objectData
 	 */
-	public function onTouchCalendarObject($action, array $calendarData, array $shares, array $objectData) {
+	public function onTouchCalendarObject(string $action, array $calendarData, array $shares, array $objectData): void {
 		if (!isset($calendarData['principaluri'])) {
 			return;
 		}
@@ -438,11 +438,11 @@ class Backend {
 
 		$classification = $objectData['classification'] ?? CalDavBackend::CLASSIFICATION_PUBLIC;
 		$object = $this->getObjectNameAndType($objectData);
-		$action = $action . '_' . $object['type'];
+		$action .= '_' . $object['type'];
 
-		if ($object['type'] === 'todo' && strpos($action, Event::SUBJECT_OBJECT_UPDATE) === 0 && $object['status'] === 'COMPLETED') {
+		if ($object['type'] === 'todo' && $object['status'] === 'COMPLETED' && strpos($action, Event::SUBJECT_OBJECT_UPDATE) === 0) {
 			$action .= '_completed';
-		} elseif ($object['type'] === 'todo' && strpos($action, Event::SUBJECT_OBJECT_UPDATE) === 0 && $object['status'] === 'NEEDS-ACTION') {
+		} elseif ($object['type'] === 'todo' && $object['status'] === 'NEEDS-ACTION' && strpos($action, Event::SUBJECT_OBJECT_UPDATE) === 0) {
 			$action .= '_needs_action';
 		}
 
@@ -524,7 +524,7 @@ class Backend {
 	 * @param array $shares
 	 * @return string[]
 	 */
-	protected function getUsersForShares(array $shares) {
+	protected function getUsersForShares(array $shares): array {
 		$users = $groups = [];
 		foreach ($shares as $share) {
 			$principal = explode('/', $share['{http://owncloud.org/ns}principal']);

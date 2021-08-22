@@ -37,9 +37,9 @@ use OCA\DAV\CalDAV\CalDavBackend;
 use OCP\Http\Client\IClientService;
 use OCP\Http\Client\LocalServerException;
 use OCP\IConfig;
-use OCP\ILogger;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Log\LoggerInterface;
 use Sabre\DAV\Exception\BadRequest;
 use Sabre\DAV\PropPatch;
 use Sabre\DAV\Xml\Property\Href;
@@ -64,7 +64,7 @@ class RefreshWebcalService {
 	/** @var IConfig */
 	private $config;
 
-	/** @var ILogger */
+	/** @var LoggerInterface */
 	private $logger;
 
 	public const REFRESH_RATE = '{http://apple.com/ns/ical/}refreshrate';
@@ -78,9 +78,9 @@ class RefreshWebcalService {
 	 * @param CalDavBackend $calDavBackend
 	 * @param IClientService $clientService
 	 * @param IConfig $config
-	 * @param ILogger $logger
+	 * @param LoggerInterface $logger
 	 */
-	public function __construct(CalDavBackend $calDavBackend, IClientService $clientService, IConfig $config, ILogger $logger) {
+	public function __construct(CalDavBackend $calDavBackend, IClientService $clientService, IConfig $config, LoggerInterface $logger) {
 		$this->calDavBackend = $calDavBackend;
 		$this->clientService = $clientService;
 		$this->config = $config;
@@ -91,7 +91,7 @@ class RefreshWebcalService {
 	 * @param string $principalUri
 	 * @param string $uri
 	 */
-	public function refreshSubscription(string $principalUri, string $uri) {
+	public function refreshSubscription(string $principalUri, string $uri): void {
 		$subscription = $this->getSubscription($principalUri, $uri);
 		$mutations = [];
 		if (!$subscription) {
@@ -142,8 +142,8 @@ class RefreshWebcalService {
 				$calendarData = $vObject->serialize();
 				try {
 					$this->calDavBackend->createCalendarObject($subscription['id'], $uri, $calendarData, CalDavBackend::CALENDAR_TYPE_SUBSCRIPTION);
-				} catch (NoInstancesException | BadRequest $ex) {
-					$this->logger->logException($ex);
+				} catch (BadRequest $ex) {
+					$this->logger->error($ex->getMessage(), ['exception' => $ex]);
 				}
 			}
 
@@ -156,8 +156,7 @@ class RefreshWebcalService {
 		} catch (ParseException $ex) {
 			$subscriptionId = $subscription['id'];
 
-			$this->logger->logException($ex);
-			$this->logger->warning("Subscription $subscriptionId could not be refreshed due to a parsing error");
+			$this->logger->warning("Subscription $subscriptionId could not be refreshed due to a parsing error", ['exception' => $ex]);
 		}
 	}
 
@@ -168,10 +167,10 @@ class RefreshWebcalService {
 	 * @param string $uri
 	 * @return array|null
 	 */
-	public function getSubscription(string $principalUri, string $uri) {
+	public function getSubscription(string $principalUri, string $uri): ?array {
 		$subscriptions = array_values(array_filter(
 			$this->calDavBackend->getSubscriptionsForUser($principalUri),
-			function ($sub) use ($uri) {
+			static function ($sub) use ($uri) {
 				return $sub['uri'] === $uri;
 			}
 		));
@@ -190,7 +189,7 @@ class RefreshWebcalService {
 	 * @param array &$mutations
 	 * @return null|string
 	 */
-	private function queryWebcalFeed(array $subscription, array &$mutations) {
+	private function queryWebcalFeed(array $subscription, array &$mutations): ?string {
 		$client = $this->clientService->newClient();
 
 		$didBreak301Chain = false;
@@ -279,16 +278,14 @@ class RefreshWebcalService {
 					return $vCalendar->serialize();
 			}
 		} catch (LocalServerException $ex) {
-			$this->logger->logException($ex, [
-				'message' => "Subscription $subscriptionId was not refreshed because it violates local access rules",
-				'level' => ILogger::WARN,
+			$this->logger->warning("Subscription $subscriptionId was not refreshed because it violates local access rules", [
+				'exception' => $ex
 			]);
 
 			return null;
 		} catch (Exception $ex) {
-			$this->logger->logException($ex, [
-				'message' => "Subscription $subscriptionId could not be refreshed due to a network error",
-				'level' => ILogger::WARN,
+			$this->logger->warning("Subscription $subscriptionId could not be refreshed due to a network error", [
+				'exception' => $ex
 			]);
 
 			return null;
@@ -305,7 +302,7 @@ class RefreshWebcalService {
 	 * @param string $webcalData
 	 * @return string|null
 	 */
-	private function checkWebcalDataForRefreshRate($subscription, $webcalData) {
+	private function checkWebcalDataForRefreshRate(array $subscription, string $webcalData): ?string {
 		// if there is no refreshrate stored in the database, check the webcal feed
 		// whether it suggests any refresh rate and store that in the database
 		if (isset($subscription[self::REFRESH_RATE]) && $subscription[self::REFRESH_RATE] !== null) {
@@ -346,7 +343,7 @@ class RefreshWebcalService {
 	 * @param array $subscription
 	 * @param array $mutations
 	 */
-	private function updateSubscription(array $subscription, array $mutations) {
+	private function updateSubscription(array $subscription, array $mutations): void {
 		if (empty($mutations)) {
 			return;
 		}
@@ -363,7 +360,7 @@ class RefreshWebcalService {
 	 * @param string $url
 	 * @return string|null
 	 */
-	private function cleanURL(string $url) {
+	private function cleanURL(string $url): ?string {
 		$parsed = parse_url($url);
 		if ($parsed === false) {
 			return null;

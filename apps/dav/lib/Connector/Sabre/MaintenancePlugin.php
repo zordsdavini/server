@@ -38,22 +38,12 @@ class MaintenancePlugin extends ServerPlugin {
 	/** @var IConfig */
 	private $config;
 
-	/** @var \OCP\IL10N */
+	/** @var IL10N */
 	private $l10n;
 
-	/**
-	 * Reference to main server object
-	 *
-	 * @var Server
-	 */
-	private $server;
-
-	/**
-	 * @param IConfig $config
-	 */
 	public function __construct(IConfig $config, IL10N $l10n) {
 		$this->config = $config;
-		$this->l10n = \OC::$server->getL10N('dav');
+		$this->l10n = $l10n;
 	}
 
 
@@ -69,8 +59,7 @@ class MaintenancePlugin extends ServerPlugin {
 	 * @return void
 	 */
 	public function initialize(\Sabre\DAV\Server $server) {
-		$this->server = $server;
-		$this->server->on('beforeMethod:*', [$this, 'checkMaintenanceMode'], 1);
+		$server->on('beforeMethod:*', [$this, 'checkMaintenanceMode'], 1);
 	}
 
 	/**
@@ -80,7 +69,7 @@ class MaintenancePlugin extends ServerPlugin {
 	 * @throws ServiceUnavailable
 	 * @return bool
 	 */
-	public function checkMaintenanceMode() {
+	public function checkMaintenanceMode(): bool {
 		if ($this->config->getSystemValueBool('maintenance')) {
 			throw new ServiceUnavailable($this->l10n->t('System is in maintenance mode.'));
 		}

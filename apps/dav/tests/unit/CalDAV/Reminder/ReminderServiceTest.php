@@ -28,6 +28,7 @@ declare(strict_types=1);
  */
 namespace OCA\DAV\Tests\unit\CalDAV\Reminder;
 
+use DateTimeInterface;
 use OCA\DAV\CalDAV\CalDavBackend;
 use OCA\DAV\CalDAV\Reminder\Backend;
 use OCA\DAV\CalDAV\Reminder\INotificationProvider;
@@ -38,29 +39,30 @@ use OCP\IGroupManager;
 use OCP\IUser;
 use OCP\IUserManager;
 use OCP\IUserSession;
+use PHPUnit\Framework\MockObject\MockObject;
 use Test\TestCase;
 
 class ReminderServiceTest extends TestCase {
 
-	/** @var Backend|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var Backend|MockObject */
 	private $backend;
 
-	/** @var NotificationProviderManager|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var NotificationProviderManager|MockObject */
 	private $notificationProviderManager;
 
-	/** @var IUserManager|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IUserManager|MockObject */
 	private $userManager;
 
-	/** @var IGroupManager|\PHPUnit\Framework\MockObject\MockObject*/
+	/** @var IGroupManager|MockObject*/
 	private $groupManager;
 
-	/** @var IUserSession|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IUserSession|MockObject */
 	private $userSession;
 
-	/** @var CalDavBackend|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var CalDavBackend|MockObject */
 	private $caldavBackend;
 
-	/** @var ITimeFactory|\PHPUnit\Framework\MockObject\MockObject  */
+	/** @var ITimeFactory|MockObject  */
 	private $timeFactory;
 
 	/** @var ReminderService */
@@ -237,7 +239,7 @@ EOD;
 		$this->timeFactory->expects($this->once())
 			->method('getDateTime')
 			->with()
-			->willReturn(\DateTime::createFromFormat(\DateTime::ATOM, '2016-06-08T00:00:00+00:00'));
+			->willReturn(\DateTime::createFromFormat(DateTimeInterface::ATOM, '2016-06-08T00:00:00+00:00'));
 
 		$this->reminderService->onCalendarObjectCreate($objectData);
 	}
@@ -264,7 +266,7 @@ EOD;
 		$this->timeFactory->expects($this->once())
 			->method('getDateTime')
 			->with()
-			->willReturn(\DateTime::createFromFormat(\DateTime::ATOM, '2016-06-08T00:00:00+00:00'));
+			->willReturn(\DateTime::createFromFormat(DateTimeInterface::ATOM, '2016-06-08T00:00:00+00:00'));
 
 		$this->reminderService->onCalendarObjectCreate($objectData);
 	}
@@ -288,7 +290,7 @@ EOD;
 		$this->timeFactory->expects($this->once())
 			->method('getDateTime')
 			->with()
-			->willReturn(\DateTime::createFromFormat(\DateTime::ATOM, '2016-06-29T00:00:00+00:00'));
+			->willReturn(\DateTime::createFromFormat(DateTimeInterface::ATOM, '2016-06-29T00:00:00+00:00'));
 
 		$this->reminderService->onCalendarObjectCreate($objectData);
 	}
@@ -330,7 +332,7 @@ EOD;
 		$this->timeFactory->expects($this->once())
 			->method('getDateTime')
 			->with()
-			->willReturn(\DateTime::createFromFormat(\DateTime::ATOM, '2016-06-29T00:00:00+00:00'));
+			->willReturn(\DateTime::createFromFormat(DateTimeInterface::ATOM, '2016-06-29T00:00:00+00:00'));
 
 		$this->reminderService->onCalendarObjectCreate($objectData);
 	}
@@ -496,7 +498,7 @@ EOD;
 		$provider1->expects($this->once())
 			->method('send')
 			->with($this->callback(function ($vevent) {
-				if ($vevent->DTSTART->getDateTime()->format(\DateTime::ATOM) !== '2016-06-09T00:00:00+00:00') {
+				if ($vevent->DTSTART->getDateTime()->format(DateTimeInterface::ATOM) !== '2016-06-09T00:00:00+00:00') {
 					return false;
 				}
 				return true;
@@ -504,7 +506,7 @@ EOD;
 		$provider2->expects($this->once())
 			->method('send')
 			->with($this->callback(function ($vevent) {
-				if ($vevent->DTSTART->getDateTime()->format(\DateTime::ATOM) !== '2016-06-09T00:00:00+00:00') {
+				if ($vevent->DTSTART->getDateTime()->format(DateTimeInterface::ATOM) !== '2016-06-09T00:00:00+00:00') {
 					return false;
 				}
 				return true;
@@ -512,7 +514,7 @@ EOD;
 		$provider3->expects($this->once())
 			->method('send')
 			->with($this->callback(function ($vevent) {
-				if ($vevent->DTSTART->getDateTime()->format(\DateTime::ATOM) !== '2016-06-09T00:00:00+00:00') {
+				if ($vevent->DTSTART->getDateTime()->format(DateTimeInterface::ATOM) !== '2016-06-09T00:00:00+00:00') {
 					return false;
 				}
 				return true;
@@ -520,7 +522,7 @@ EOD;
 		$provider4->expects($this->once())
 			->method('send')
 			->with($this->callback(function ($vevent) {
-				if ($vevent->DTSTART->getDateTime()->format(\DateTime::ATOM) !== '2016-06-30T00:00:00+00:00') {
+				if ($vevent->DTSTART->getDateTime()->format(DateTimeInterface::ATOM) !== '2016-06-30T00:00:00+00:00') {
 					return false;
 				}
 				return true;
@@ -528,7 +530,7 @@ EOD;
 		$provider5->expects($this->once())
 			->method('send')
 			->with($this->callback(function ($vevent) {
-				if ($vevent->DTSTART->getDateTime()->format(\DateTime::ATOM) !== '2016-07-07T00:00:00+00:00') {
+				if ($vevent->DTSTART->getDateTime()->format(DateTimeInterface::ATOM) !== '2016-07-07T00:00:00+00:00') {
 					return false;
 				}
 				return true;
@@ -576,7 +578,7 @@ EOD;
 			->willReturn(99);
 
 		$this->timeFactory->method('getDateTime')
-			->willReturn(\DateTime::createFromFormat(\DateTime::ATOM, '2016-06-08T00:00:00+00:00'));
+			->willReturn(\DateTime::createFromFormat(DateTimeInterface::ATOM, '2016-06-08T00:00:00+00:00'));
 
 		$this->reminderService->processReminders();
 	}

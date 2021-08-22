@@ -88,11 +88,11 @@ class FakeLockerPlugin extends ServerPlugin {
 	 * @param INode $node
 	 * @return void
 	 */
-	public function propFind(PropFind $propFind, INode $node) {
+	public function propFind(PropFind $propFind, INode $node): void {
 		$propFind->handle('{DAV:}supportedlock', function () {
 			return new SupportedLock(true);
 		});
-		$propFind->handle('{DAV:}lockdiscovery', function () use ($propFind) {
+		$propFind->handle('{DAV:}lockdiscovery', function () {
 			return new LockDiscovery([]);
 		});
 	}
@@ -103,14 +103,12 @@ class FakeLockerPlugin extends ServerPlugin {
 	 * @param RequestInterface $request
 	 * @param array $conditions
 	 */
-	public function validateTokens(RequestInterface $request, &$conditions) {
+	public function validateTokens(RequestInterface $request, array &$conditions): void {
 		foreach ($conditions as &$fileCondition) {
 			if (isset($fileCondition['tokens'])) {
 				foreach ($fileCondition['tokens'] as &$token) {
-					if (isset($token['token'])) {
-						if (substr($token['token'], 0, 16) === 'opaquelocktoken:') {
-							$token['validToken'] = true;
-						}
+					if (isset($token['token']) && strpos($token['token'], 'opaquelocktoken:') === 0) {
+						$token['validToken'] = true;
 					}
 				}
 			}
@@ -125,7 +123,7 @@ class FakeLockerPlugin extends ServerPlugin {
 	 * @return bool
 	 */
 	public function fakeLockProvider(RequestInterface $request,
-									 ResponseInterface $response) {
+									 ResponseInterface $response): bool {
 		$lockInfo = new LockInfo();
 		$lockInfo->token = md5($request->getPath());
 		$lockInfo->uri = $request->getPath();
@@ -151,7 +149,7 @@ class FakeLockerPlugin extends ServerPlugin {
 	 * @return bool
 	 */
 	public function fakeUnlockProvider(RequestInterface $request,
-									 ResponseInterface $response) {
+									 ResponseInterface $response): bool {
 		$response->setStatus(204);
 		$response->setHeader('Content-Length', '0');
 		return false;

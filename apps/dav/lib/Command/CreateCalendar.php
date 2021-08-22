@@ -29,11 +29,18 @@ use OC\KnownUser\KnownUserService;
 use OCA\DAV\CalDAV\CalDavBackend;
 use OCA\DAV\CalDAV\Proxy\ProxyMapper;
 use OCA\DAV\Connector\Sabre\Principal;
+use OCP\App\IAppManager;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
+use OCP\IL10N;
 use OCP\IUserManager;
+use OCP\IUserSession;
+use OCP\L10N\IFactory;
+use OCP\Security\ISecureRandom;
+use OCP\Share\IManager;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -47,19 +54,40 @@ class CreateCalendar extends Command {
 	/** @var IGroupManager $groupManager */
 	private $groupManager;
 
-	/** @var \OCP\IDBConnection */
+	/** @var IDBConnection */
 	protected $dbConnection;
+
+	/** @var IManager */
+	private $shareManager;
+
+	/** @var IUserSession */
+	private $userSession;
+
+	/** @var IAppManager */
+	private $appManager;
+
+	/** @var IConfig */
+	private $config;
+
+	/** @var IL10N */
+	private $il10nFactory;
 
 	/**
 	 * @param IUserManager $userManager
 	 * @param IGroupManager $groupManager
 	 * @param IDBConnection $dbConnection
+	 * @param IManager $shareManager
 	 */
-	public function __construct(IUserManager $userManager, IGroupManager $groupManager, IDBConnection $dbConnection) {
+	public function __construct(IUserManager $userManager, IGroupManager $groupManager, IDBConnection $dbConnection, IManager $shareManager, IUserSession $userSession, IAppManager $appManager, IConfig $config, IFactory $il10nFactory) {
 		parent::__construct();
 		$this->userManager = $userManager;
 		$this->groupManager = $groupManager;
 		$this->dbConnection = $dbConnection;
+		$this->shareManager = $shareManager;
+		$this->userSession = $userSession;
+		$this->appManager = $appManager;
+		$this->config = $config;
+		$this->il10nFactory = $il10nFactory;
 	}
 
 	protected function configure() {
@@ -82,16 +110,16 @@ class CreateCalendar extends Command {
 		$principalBackend = new Principal(
 			$this->userManager,
 			$this->groupManager,
-			\OC::$server->getShareManager(),
-			\OC::$server->getUserSession(),
-			\OC::$server->getAppManager(),
-			\OC::$server->query(ProxyMapper::class),
+			$this->shareManager,
+			$this->userSession,
+			$this->appManager,
+			\OC::$server->get(ProxyMapper::class),
 			\OC::$server->get(KnownUserService::class),
-			\OC::$server->getConfig(),
-			\OC::$server->getL10NFactory(),
+			$this->config,
+			$this->il10nFactory,
 		);
-		$random = \OC::$server->getSecureRandom();
-		$logger = \OC::$server->getLogger();
+		$random = \OC::$server->get(ISecureRandom::class);
+		$logger = \OC::$server->get(LoggerInterface::class);
 		$dispatcher = \OC::$server->get(IEventDispatcher::class);
 		$legacyDispatcher = \OC::$server->getEventDispatcher();
 		$config = \OC::$server->get(IConfig::class);

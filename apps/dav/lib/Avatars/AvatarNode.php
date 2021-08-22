@@ -37,7 +37,7 @@ class AvatarNode extends File {
 	 * @param string $ext
 	 * @param IAvatar $avatar
 	 */
-	public function __construct($size, $ext, $avatar) {
+	public function __construct(int $size, string $ext, IAvatar $avatar) {
 		$this->size = $size;
 		$this->ext = $ext;
 		$this->avatar = $avatar;

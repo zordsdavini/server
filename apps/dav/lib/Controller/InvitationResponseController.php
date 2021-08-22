@@ -32,9 +32,12 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IDBConnection;
+use OCP\DB\Exception as DBException;
 use OCP\IRequest;
 use Sabre\VObject\ITip\Message;
+use Sabre\VObject\Property\ICalendar\CalAddress;
 use Sabre\VObject\Reader;
+use function in_array;
 
 class InvitationResponseController extends Controller {
 
@@ -74,6 +77,7 @@ class InvitationResponseController extends Controller {
 	 *
 	 * @param string $token
 	 * @return TemplateResponse
+	 * @throws DBException
 	 */
 	public function accept(string $token):TemplateResponse {
 		$row = $this->getTokenInformation($token);
@@ -98,6 +102,7 @@ class InvitationResponseController extends Controller {
 	 *
 	 * @param string $token
 	 * @return TemplateResponse
+	 * @throws DBException
 	 */
 	public function decline(string $token):TemplateResponse {
 		$row = $this->getTokenInformation($token);
@@ -137,6 +142,7 @@ class InvitationResponseController extends Controller {
 	 * @param string $token
 	 *
 	 * @return TemplateResponse
+	 * @throws DBException
 	 */
 	public function processMoreOptionsResult(string $token):TemplateResponse {
 		$partstat = $this->request->getParam('partStat');
@@ -144,7 +150,7 @@ class InvitationResponseController extends Controller {
 		$comment = $this->request->getParam('comment');
 
 		$row = $this->getTokenInformation($token);
-		if (!$row || !\in_array($partstat, ['ACCEPTED', 'DECLINED', 'TENTATIVE'])) {
+		if (!$row || !in_array($partstat, ['ACCEPTED', 'DECLINED', 'TENTATIVE'])) {
 			return new TemplateResponse($this->appName, 'schedule-response-error', [], 'guest');
 		}
 
@@ -162,8 +168,9 @@ class InvitationResponseController extends Controller {
 	/**
 	 * @param string $token
 	 * @return array|null
+	 * @throws DBException
 	 */
-	private function getTokenInformation(string $token) {
+	private function getTokenInformation(string $token): ?array {
 		$query = $this->db->getQueryBuilder();
 		$query->select('*')
 			->from('calendar_invitations')
@@ -220,7 +227,7 @@ EOF;
 			$row['uid'], $row['sequence'] ?? 0, $row['recurrenceid'] ?? ''
 		]));
 		$vEvent = $vObject->{'VEVENT'};
-		/** @var \Sabre\VObject\Property\ICalendar\CalAddress $attendee */
+		/** @var CalAddress $attendee */
 		$attendee = $vEvent->{'ATTENDEE'};
 
 		$vEvent->DTSTAMP = date('Ymd\\THis\\Z', $this->timeFactory->getTime());

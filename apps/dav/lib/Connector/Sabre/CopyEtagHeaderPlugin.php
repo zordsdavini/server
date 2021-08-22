@@ -57,7 +57,7 @@ class CopyEtagHeaderPlugin extends \Sabre\DAV\ServerPlugin {
 	 * @param RequestInterface $request request
 	 * @param ResponseInterface $response response
 	 */
-	public function afterMethod(RequestInterface $request, ResponseInterface $response) {
+	public function afterMethod(RequestInterface $request, ResponseInterface $response): void {
 		$eTag = $response->getHeader('Etag');
 		if (!empty($eTag)) {
 			$response->setHeader('OC-ETag', $eTag);
@@ -73,7 +73,7 @@ class CopyEtagHeaderPlugin extends \Sabre\DAV\ServerPlugin {
 	 * @param string $destination
 	 * @return void
 	 */
-	public function afterMove($source, $destination) {
+	public function afterMove(string $source, string $destination): void {
 		try {
 			$node = $this->server->tree->getNodeForPath($destination);
 		} catch (NotFound $e) {

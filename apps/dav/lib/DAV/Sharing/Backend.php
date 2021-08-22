@@ -57,7 +57,7 @@ class Backend {
 	 * @param Principal $principalBackend
 	 * @param string $resourceType
 	 */
-	public function __construct(IDBConnection $db, IUserManager $userManager, IGroupManager $groupManager, Principal $principalBackend, $resourceType) {
+	public function __construct(IDBConnection $db, IUserManager $userManager, IGroupManager $groupManager, Principal $principalBackend, string $resourceType) {
 		$this->db = $db;
 		$this->userManager = $userManager;
 		$this->groupManager = $groupManager;
@@ -67,10 +67,10 @@ class Backend {
 
 	/**
 	 * @param IShareable $shareable
-	 * @param string[] $add
-	 * @param string[] $remove
+	 * @param array|string[] $add
+	 * @param array|string[] $remove
 	 */
-	public function updateShares(IShareable $shareable, array $add, array $remove) {
+	public function updateShares(IShareable $shareable, array $add, array $remove): void {
 		foreach ($add as $element) {
 			$principal = $this->principalBackend->findByUri($element['href'], '');
 			if ($principal !== '') {
@@ -87,9 +87,10 @@ class Backend {
 
 	/**
 	 * @param IShareable $shareable
-	 * @param string $element
+	 * @param array $element
+	 * @throws \OCP\DB\Exception
 	 */
-	private function shareWith($shareable, $element) {
+	private function shareWith(IShareable $shareable, array $element): void {
 		$user = $element['href'];
 		$parts = explode(':', $user, 2);
 		if ($parts[0] !== 'principal') {
@@ -133,9 +134,10 @@ class Backend {
 	}
 
 	/**
-	 * @param $resourceId
+	 * @param int $resourceId
+	 * @throws \OCP\DB\Exception
 	 */
-	public function deleteAllShares($resourceId) {
+	public function deleteAllShares(int $resourceId): void {
 		$query = $this->db->getQueryBuilder();
 		$query->delete('dav_shares')
 			->where($query->expr()->eq('resourceid', $query->createNamedParameter($resourceId)))
@@ -143,7 +145,7 @@ class Backend {
 			->execute();
 	}
 
-	public function deleteAllSharesByUser($principaluri) {
+	public function deleteAllSharesByUser(string $principaluri): void {
 		$query = $this->db->getQueryBuilder();
 		$query->delete('dav_shares')
 			->where($query->expr()->eq('principaluri', $query->createNamedParameter($principaluri)))
@@ -155,7 +157,7 @@ class Backend {
 	 * @param IShareable $shareable
 	 * @param string $element
 	 */
-	private function unshare($shareable, $element) {
+	private function unshare(IShareable $shareable, string $element): void {
 		$parts = explode(':', $element, 2);
 		if ($parts[0] !== 'principal') {
 			return;
@@ -188,7 +190,7 @@ class Backend {
 	 * @param int $resourceId
 	 * @return array
 	 */
-	public function getShares($resourceId) {
+	public function getShares(int $resourceId): array {
 		$query = $this->db->getQueryBuilder();
 		$result = $query->select(['principaluri', 'access'])
 			->from('dav_shares')
@@ -220,18 +222,18 @@ class Backend {
 	 * @param array $acl
 	 * @return array
 	 */
-	public function applyShareAcl($resourceId, $acl) {
+	public function applyShareAcl(int $resourceId, array $acl): array {
 		$shares = $this->getShares($resourceId);
 		foreach ($shares as $share) {
 			$acl[] = [
 				'privilege' => '{DAV:}read',
-				'principal' => $share['{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}principal'],
+				'principal' => $share['{' . Plugin::NS_OWNCLOUD . '}principal'],
 				'protected' => true,
 			];
 			if (!$share['readOnly']) {
 				$acl[] = [
 					'privilege' => '{DAV:}write',
-					'principal' => $share['{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}principal'],
+					'principal' => $share['{' . Plugin::NS_OWNCLOUD . '}principal'],
 					'protected' => true,
 				];
 			} elseif ($this->resourceType === 'calendar') {
@@ -239,7 +241,7 @@ class Backend {
 				// so users can change the visibility.
 				$acl[] = [
 					'privilege' => '{DAV:}write-properties',
-					'principal' => $share['{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}principal'],
+					'principal' => $share['{' . Plugin::NS_OWNCLOUD . '}principal'],
 					'protected' => true,
 				];
 			}

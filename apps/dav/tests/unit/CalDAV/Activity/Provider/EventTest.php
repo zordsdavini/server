@@ -82,11 +82,11 @@ class EventTest extends TestCase {
 				$this->eventMerger,
 				$this->appManager
 			])
-			->setMethods(['parse'])
+			->onlyMethods(['parse'])
 			->getMock();
 	}
 
-	public function dataGenerateObjectParameter() {
+	public function dataGenerateObjectParameter(): array {
 		$link = [
 			'object_uri' => 'someuuid.ics',
 			'calendar_uri' => 'personal',
@@ -107,7 +107,7 @@ class EventTest extends TestCase {
 	 * @param array|null $link
 	 * @param bool $calendarAppEnabled
 	 */
-	public function testGenerateObjectParameter(int $id, string $name, ?array $link, bool $calendarAppEnabled = true) {
+	public function testGenerateObjectParameter(int $id, string $name, ?array $link, bool $calendarAppEnabled = true): void {
 		if ($link) {
 			$generatedLink = [
 				'view' => 'dayGridMonth',
@@ -139,10 +139,10 @@ class EventTest extends TestCase {
 		if ($link && $calendarAppEnabled) {
 			$result['link'] = 'fullLink';
 		}
-		$this->assertEquals($result, $this->invokePrivate($this->provider, 'generateObjectParameter', [$objectParameter]));
+		$this->assertEquals($result, self::invokePrivate($this->provider, 'generateObjectParameter', [$objectParameter]));
 	}
 
-	public function dataGenerateObjectParameterThrows() {
+	public function dataGenerateObjectParameterThrows(): array {
 		return [
 			['event', TypeError::class],
 			[['name' => 'event']],
@@ -155,9 +155,9 @@ class EventTest extends TestCase {
 	 * @param mixed $eventData
 	 * @param string $exception
 	 */
-	public function testGenerateObjectParameterThrows($eventData, string $exception = InvalidArgumentException::class) {
+	public function testGenerateObjectParameterThrows($eventData, string $exception = InvalidArgumentException::class): void {
 		$this->expectException($exception);
 
-		$this->invokePrivate($this->provider, 'generateObjectParameter', [$eventData]);
+		self::invokePrivate($this->provider, 'generateObjectParameter', [$eventData]);
 	}
 }

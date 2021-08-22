@@ -54,7 +54,7 @@ class TagList implements Element {
 	 *
 	 * @return array
 	 */
-	public function getTags() {
+	public function getTags(): array {
 		return $this->tags;
 	}
 

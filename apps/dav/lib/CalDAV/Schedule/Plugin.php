@@ -277,7 +277,7 @@ EOF;
 	 * @param INode $node
 	 * @return void
 	 */
-	public function propFindDefaultCalendarUrl(PropFind $propFind, INode $node) {
+	public function propFindDefaultCalendarUrl(PropFind $propFind, INode $node): void {
 		if ($node instanceof IPrincipal) {
 			$propFind->handle(self::SCHEDULE_DEFAULT_CALENDAR_URL, function () use ($node) {
 				/** @var \OCA\DAV\CalDAV\Plugin $caldavPlugin */
@@ -327,7 +327,7 @@ EOF;
 	 * @param string $principal
 	 * @return string|null
 	 */
-	protected function getCalendarUserTypeForPrincipal($principal):?string {
+	protected function getCalendarUserTypeForPrincipal(string $principal):?string {
 		$calendarUserType = '{' . self::NS_CALDAV . '}calendar-user-type';
 		$properties = $this->server->getProperties(
 			$principal,

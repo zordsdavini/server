@@ -31,17 +31,18 @@ namespace OCA\DAV\Tests\unit\BackgroundJob;
 use OCA\DAV\BackgroundJob\EventReminderJob;
 use OCA\DAV\CalDAV\Reminder\ReminderService;
 use OCP\IConfig;
+use PHPUnit\Framework\MockObject\MockObject;
 use Test\TestCase;
 
 class EventReminderJobTest extends TestCase {
 
-	/** @var ReminderService|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var ReminderService|MockObject */
 	private $reminderService;
 
-	/** @var IConfig|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IConfig|MockObject */
 	private $config;
 
-	/** @var EventReminderJob|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var EventReminderJob|MockObject */
 	private $backgroundJob;
 
 	protected function setUp(): void {

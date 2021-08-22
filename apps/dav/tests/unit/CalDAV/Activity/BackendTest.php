@@ -71,20 +71,20 @@ class BackendTest extends TestCase {
 				$this->userSession,
 				$this->appManager
 			);
-		} else {
-			return $this->getMockBuilder(Backend::class)
-				->setConstructorArgs([
-					$this->activityManager,
-					$this->groupManager,
-					$this->userSession,
-					$this->appManager,
-				])
-				->setMethods($methods)
-				->getMock();
 		}
+
+		return $this->getMockBuilder(Backend::class)
+			->setConstructorArgs([
+				$this->activityManager,
+				$this->groupManager,
+				$this->userSession,
+				$this->appManager,
+			])
+			->onlyMethods($methods)
+			->getMock();
 	}
 
-	public function dataCallTriggerCalendarActivity() {
+	public function dataCallTriggerCalendarActivity(): array {
 		return [
 			['onCalendarAdd', [['data']], Calendar::SUBJECT_ADD, [['data'], [], []]],
 			['onCalendarUpdate', [['data'], ['shares'], ['changed-properties']], Calendar::SUBJECT_UPDATE, [['data'], ['shares'], ['changed-properties']]],
@@ -101,7 +101,7 @@ class BackendTest extends TestCase {
 	 * @param string $expectedSubject
 	 * @param array $expectedPayload
 	 */
-	public function testCallTriggerCalendarActivity($method, array $payload, $expectedSubject, array $expectedPayload) {
+	public function testCallTriggerCalendarActivity(string $method, array $payload, string $expectedSubject, array $expectedPayload): void {
 		$backend = $this->getBackend(['triggerCalendarActivity']);
 		$backend->expects($this->once())
 			->method('triggerCalendarActivity')
@@ -114,7 +114,7 @@ class BackendTest extends TestCase {
 		call_user_func_array([$backend, $method], $payload);
 	}
 
-	public function dataTriggerCalendarActivity() {
+	public function dataTriggerCalendarActivity(): array {
 		return [
 			// Add calendar
 			[Calendar::SUBJECT_ADD, [], [], [], '', '', null, []],
@@ -206,7 +206,7 @@ class BackendTest extends TestCase {
 	 * @param string[]|null $shareUsers
 	 * @param string[] $users
 	 */
-	public function testTriggerCalendarActivity($action, array $data, array $shares, array $changedProperties, $currentUser, $author, $shareUsers, array $users) {
+	public function testTriggerCalendarActivity(string $action, array $data, array $shares, array $changedProperties, string $currentUser, string $author, ?array $shareUsers, array $users): void {
 		$backend = $this->getBackend(['getUsersForShares']);
 
 		if ($shareUsers === null) {
@@ -252,13 +252,13 @@ class BackendTest extends TestCase {
 				->with($author)
 				->willReturnSelf();
 
-			$event->expects($this->exactly(sizeof($users)))
+			$event->expects($this->exactly(count($users)))
 				->method('setAffectedUser')
 				->willReturnSelf();
-			$event->expects($this->exactly(sizeof($users)))
+			$event->expects($this->exactly(count($users)))
 				->method('setSubject')
 				->willReturnSelf();
-			$this->activityManager->expects($this->exactly(sizeof($users)))
+			$this->activityManager->expects($this->exactly(count($users)))
 				->method('publish')
 				->with($event);
 		} else {
@@ -266,7 +266,7 @@ class BackendTest extends TestCase {
 				->method('generateEvent');
 		}
 
-		$this->invokePrivate($backend, 'triggerCalendarActivity', [$action, $data, $shares, $changedProperties]);
+		self::invokePrivate($backend, 'triggerCalendarActivity', [$action, $data, $shares, $changedProperties]);
 	}
 
 	public function dataGetUsersForShares() {
@@ -318,7 +318,7 @@ class BackendTest extends TestCase {
 	 * @param array $groups
 	 * @param array $expected
 	 */
-	public function testGetUsersForShares(array $shares, array $groups, array $expected) {
+	public function testGetUsersForShares(array $shares, array $groups, array $expected): void {
 		$backend = $this->getBackend();
 
 		$getGroups = [];
@@ -336,11 +336,11 @@ class BackendTest extends TestCase {
 			$getGroups[] = [$gid, $group];
 		}
 
-		$this->groupManager->expects($this->exactly(sizeof($getGroups)))
+		$this->groupManager->expects($this->exactly(count($getGroups)))
 			->method('get')
 			->willReturnMap($getGroups);
 
-		$users = $this->invokePrivate($backend, 'getUsersForShares', [$shares]);
+		$users = self::invokePrivate($backend, 'getUsersForShares', [$shares]);
 		sort($users);
 		$this->assertEquals($expected, $users);
 	}
@@ -349,7 +349,7 @@ class BackendTest extends TestCase {
 	 * @param string[] $users
 	 * @return IUser[]|MockObject[]
 	 */
-	protected function getUsers(array $users) {
+	protected function getUsers(array $users): array {
 		$list = [];
 		foreach ($users as $user) {
 			$list[] = $this->getUserMock($user);
@@ -361,7 +361,7 @@ class BackendTest extends TestCase {
 	 * @param string $uid
 	 * @return IUser|MockObject
 	 */
-	protected function getUserMock($uid) {
+	protected function getUserMock(string $uid) {
 		$user = $this->createMock(IUser::class);
 		$user->expects($this->once())
 			->method('getUID')

@@ -54,7 +54,7 @@ class PropfindCompressionPlugin extends ServerPlugin {
 		$this->server->on('afterMethod:PROPFIND', [$this, 'compressResponse'], 100);
 	}
 
-	public function compressResponse(Request $request, Response $response) {
+	public function compressResponse(Request $request, Response $response): Response {
 		$header = $request->getHeader('Accept-Encoding');
 
 		if ($header === null) {

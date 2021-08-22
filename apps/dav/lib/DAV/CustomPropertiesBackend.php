@@ -119,7 +119,7 @@ class CustomPropertiesBackend implements BackendInterface {
 
 		// substr of calendars/ => path is inside the CalDAV component
 		// two '/' => this a calendar (no calendar-home nor calendar object)
-		if (substr($path, 0, 10) === 'calendars/' && substr_count($path, '/') === 2) {
+		if (strpos($path, 'calendars/') === 0 && substr_count($path, '/') === 2) {
 			$allRequestedProps = $propFind->getRequestedProperties();
 			$customPropertiesForShares = [
 				'{DAV:}displayname',
@@ -131,7 +131,7 @@ class CustomPropertiesBackend implements BackendInterface {
 			];
 
 			foreach ($customPropertiesForShares as $customPropertyForShares) {
-				if (in_array($customPropertyForShares, $allRequestedProps)) {
+				if (in_array($customPropertyForShares, $allRequestedProps, true)) {
 					$requestedProps[] = $customPropertyForShares;
 				}
 			}
@@ -234,7 +234,7 @@ class CustomPropertiesBackend implements BackendInterface {
 	 * http://www.example.org/namespace#author If the array is empty, all
 	 * properties should be returned
 	 */
-	private function getUserProperties(string $path, array $requestedProperties) {
+	private function getUserProperties(string $path, array $requestedProperties): array {
 		if (isset($this->userCache[$path])) {
 			return $this->userCache[$path];
 		}
@@ -277,7 +277,7 @@ class CustomPropertiesBackend implements BackendInterface {
 	 *
 	 * @return bool
 	 */
-	private function updateProperties(string $path, array $properties) {
+	private function updateProperties(string $path, array $properties): bool {
 		$deleteStatement = 'DELETE FROM `*PREFIX*properties`' .
 			' WHERE `userid` = ? AND `propertypath` = ? AND `propertyname` = ?';
 
@@ -340,8 +340,8 @@ class CustomPropertiesBackend implements BackendInterface {
 	private function formatPath(string $path): string {
 		if (strlen($path) > 250) {
 			return sha1($path);
-		} else {
-			return $path;
 		}
+
+		return $path;
 	}
 }

@@ -27,8 +27,10 @@ namespace OCA\DAV\Tests\Unit\DAV\Migration;
 
 use OCA\DAV\CalDAV\CalDavBackend;
 use OCA\DAV\Migration\CalDAVRemoveEmptyValue;
-use OCP\ILogger;
+use OCP\IDBConnection;
 use OCP\Migration\IOutput;
+use PHPUnit\Framework\MockObject\MockObject;
+use Psr\Log\LoggerInterface;
 use Sabre\VObject\InvalidDataException;
 use Test\TestCase;
 
@@ -40,13 +42,13 @@ use Test\TestCase;
  */
 class CalDAVRemoveEmptyValueTest extends TestCase {
 
-	/** @var ILogger|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var LoggerInterface|MockObject */
 	private $logger;
 
-	/** @var CalDavBackend|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var CalDavBackend|MockObject */
 	private $backend;
 
-	/** @var IOutput|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IOutput|MockObject */
 	private $output;
 
 	/** @var string */
@@ -94,20 +96,20 @@ END:VCALENDAR';
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->logger = $this->createMock(ILogger::class);
+		$this->logger = $this->createMock(LoggerInterface::class);
 		$this->backend = $this->createMock(CalDavBackend::class);
 		$this->output = $this->createMock(IOutput::class);
 	}
 
-	public function testRunAllValid() {
-		/** @var CalDAVRemoveEmptyValue|\PHPUnit\Framework\MockObject\MockObject $step */
+	public function testRunAllValid(): void {
+		/** @var CalDAVRemoveEmptyValue|MockObject $step */
 		$step = $this->getMockBuilder(CalDAVRemoveEmptyValue::class)
 			->setConstructorArgs([
-				\OC::$server->getDatabaseConnection(),
+				\OC::$server->get(IDBConnection::class),
 				$this->backend,
 				$this->logger
 			])
-			->setMethods(['getInvalidObjects'])
+			->onlyMethods(['getInvalidObjects'])
 			->getMock();
 
 		$step->expects($this->once())
@@ -123,15 +125,15 @@ END:VCALENDAR';
 		$step->run($this->output);
 	}
 
-	public function testRunInvalid() {
-		/** @var CalDAVRemoveEmptyValue|\PHPUnit\Framework\MockObject\MockObject $step */
+	public function testRunInvalid(): void {
+		/** @var CalDAVRemoveEmptyValue|MockObject $step */
 		$step = $this->getMockBuilder(CalDAVRemoveEmptyValue::class)
 			->setConstructorArgs([
-				\OC::$server->getDatabaseConnection(),
+				\OC::$server->get(IDBConnection::class),
 				$this->backend,
 				$this->logger
 			])
-			->setMethods(['getInvalidObjects'])
+			->onlyMethods(['getInvalidObjects'])
 			->getMock();
 
 		$step->expects($this->once())
@@ -146,35 +148,35 @@ END:VCALENDAR';
 		$this->output->expects($this->once())
 			->method('finishProgress');
 
-		$this->backend->expects($this->exactly(1))
+		$this->backend->expects($this->once())
 			->method('getCalendarObject')
 			->with(42, 'myuri')
 			->willReturn([
 				'calendardata' => $this->invalid
 			]);
 
-		$this->output->expects($this->exactly(1))
+		$this->output->expects($this->once())
 			->method('advance');
-		$this->backend->expects($this->exactly(1))
+		$this->backend->expects($this->once())
 			->method('getDenormalizedData')
 			->with($this->valid);
 
-		$this->backend->expects($this->exactly(1))
+		$this->backend->expects($this->once())
 			->method('updateCalendarObject')
 			->with(42, 'myuri', $this->valid);
 
 		$step->run($this->output);
 	}
 
-	public function testRunValid() {
-		/** @var CalDAVRemoveEmptyValue|\PHPUnit\Framework\MockObject\MockObject $step */
+	public function testRunValid(): void {
+		/** @var CalDAVRemoveEmptyValue|MockObject $step */
 		$step = $this->getMockBuilder(CalDAVRemoveEmptyValue::class)
 			->setConstructorArgs([
-				\OC::$server->getDatabaseConnection(),
+				\OC::$server->get(IDBConnection::class),
 				$this->backend,
 				$this->logger
 			])
-			->setMethods(['getInvalidObjects'])
+			->onlyMethods(['getInvalidObjects'])
 			->getMock();
 
 		$step->expects($this->once())
@@ -190,7 +192,7 @@ END:VCALENDAR';
 			->method('finishProgress');
 
 
-		$this->backend->expects($this->exactly(1))
+		$this->backend->expects($this->once())
 			->method('getCalendarObject')
 			->with(42, 'myuri')
 			->willReturn([
@@ -208,15 +210,15 @@ END:VCALENDAR';
 		$step->run($this->output);
 	}
 
-	public function testRunStillInvalid() {
-		/** @var CalDAVRemoveEmptyValue|\PHPUnit\Framework\MockObject\MockObject $step */
+	public function testRunStillInvalid(): void {
+		/** @var CalDAVRemoveEmptyValue|MockObject $step */
 		$step = $this->getMockBuilder(CalDAVRemoveEmptyValue::class)
 			->setConstructorArgs([
-				\OC::$server->getDatabaseConnection(),
+				\OC::$server->get(IDBConnection::class),
 				$this->backend,
 				$this->logger
 			])
-			->setMethods(['getInvalidObjects'])
+			->onlyMethods(['getInvalidObjects'])
 			->getMock();
 
 		$step->expects($this->once())
@@ -232,16 +234,16 @@ END:VCALENDAR';
 			->method('finishProgress');
 
 
-		$this->backend->expects($this->exactly(1))
+		$this->backend->expects($this->once())
 			->method('getCalendarObject')
 			->with(42, 'myuri')
 			->willReturn([
 				'calendardata' => $this->invalid
 			]);
 
-		$this->output->expects($this->exactly(1))
+		$this->output->expects($this->once())
 			->method('advance');
-		$this->backend->expects($this->exactly(1))
+		$this->backend->expects($this->once())
 			->method('getDenormalizedData')
 			->with($this->valid)
 			->willThrowException(new InvalidDataException());

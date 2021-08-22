@@ -144,7 +144,7 @@ class MoveCalendar extends Command {
 			}
 		}
 
-		$hadShares = $this->checkShares($calendar, $userOrigin, $userDestination, $input->getOption('force'));
+		$hadShares = $this->checkShares($calendar, $userDestination, $input->getOption('force'));
 		if ($hadShares) {
 			/**
 			 * Warn that share links have changed if there are shares
@@ -201,13 +201,12 @@ class MoveCalendar extends Command {
 	 * Check that moving the calendar won't break shares
 	 *
 	 * @param array $calendar
-	 * @param string $userOrigin
 	 * @param string $userDestination
 	 * @param bool $force
 	 * @return bool had any shares or not
 	 * @throws \InvalidArgumentException
 	 */
-	private function checkShares(array $calendar, string $userOrigin, string $userDestination, bool $force = false): bool {
+	private function checkShares(array $calendar, string $userDestination, bool $force = false): bool {
 		$shares = $this->calDav->getShares($calendar['id']);
 		foreach ($shares as $share) {
 			[, $prefix, $userOrGroup] = explode('/', $share['href'], 3);
@@ -216,7 +215,7 @@ class MoveCalendar extends Command {
 			 * Check that user destination is member of the groups which whom the calendar was shared
 			 * If we ask to force the migration, the share with the group is dropped
 			 */
-			if ($this->shareManager->shareWithGroupMembersOnly() === true && 'groups' === $prefix && !$this->groupManager->isInGroup($userDestination, $userOrGroup)) {
+			if ('groups' === $prefix && $this->shareManager->shareWithGroupMembersOnly() === true && !$this->groupManager->isInGroup($userDestination, $userOrGroup)) {
 				if ($force) {
 					$this->calDav->updateShares(new Calendar($this->calDav, $calendar, $this->l10n, $this->config), [], ['href' => 'principal:principals/groups/' . $userOrGroup]);
 				} else {

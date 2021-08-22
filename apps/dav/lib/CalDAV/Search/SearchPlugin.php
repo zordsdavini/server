@@ -93,7 +93,7 @@ class SearchPlugin extends ServerPlugin {
 	 * @param mixed $path
 	 * @return bool
 	 */
-	public function report($reportName, $report, $path) {
+	public function report(string $reportName, CalendarSearchReport $report, $path): bool {
 		switch ($reportName) {
 			case '{' . self::NS_Nextcloud . '}calendar-search':
 				$this->server->transactionType = 'report-nc-calendar-search';
@@ -132,7 +132,7 @@ class SearchPlugin extends ServerPlugin {
 	 * @param Xml\Request\CalendarSearchReport $report
 	 * @return void
 	 */
-	private function calendarSearch($report) {
+	private function calendarSearch(CalendarSearchReport $report): void {
 		$node = $this->server->tree->getNodeForPath($this->server->getRequestUri());
 		$depth = $this->server->getHTTPDepth(2);
 

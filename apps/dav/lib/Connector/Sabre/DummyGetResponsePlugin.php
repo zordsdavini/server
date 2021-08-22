@@ -26,6 +26,7 @@
  */
 namespace OCA\DAV\Connector\Sabre;
 
+use Sabre\DAV\ServerPlugin;
 use Sabre\HTTP\RequestInterface;
 use Sabre\HTTP\ResponseInterface;
 
@@ -42,7 +43,7 @@ use Sabre\HTTP\ResponseInterface;
  *
  * @package OCA\DAV\Connector\Sabre
  */
-class DummyGetResponsePlugin extends \Sabre\DAV\ServerPlugin {
+class DummyGetResponsePlugin extends ServerPlugin {
 	/** @var \Sabre\DAV\Server */
 	protected $server;
 

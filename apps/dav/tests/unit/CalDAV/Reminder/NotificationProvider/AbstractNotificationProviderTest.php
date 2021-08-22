@@ -27,34 +27,35 @@ declare(strict_types=1);
  */
 namespace OCA\DAV\Tests\unit\CalDAV\Reminder\NotificationProvider;
 
+use Psr\Log\LoggerInterface;
 use OCA\DAV\CalDAV\Reminder\NotificationProvider\AbstractProvider;
 use OCP\IConfig;
 use OCP\IL10N;
-use OCP\ILogger;
 use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\L10N\IFactory as L10NFactory;
+use PHPUnit\Framework\MockObject\MockObject;
 use Sabre\VObject\Component\VCalendar;
 use Test\TestCase;
 
 abstract class AbstractNotificationProviderTest extends TestCase {
 
-	/** @var ILogger|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var LoggerInterface|MockObject */
 	protected $logger;
 
-	/** @var L10NFactory|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var L10NFactory|MockObject */
 	protected $l10nFactory;
 
-	/** @var IL10N|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IL10N|MockObject */
 	protected $l10n;
 
-	/** @var IURLGenerator|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IURLGenerator|MockObject */
 	protected $urlGenerator;
 
-	/** @var IConfig|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IConfig|MockObject */
 	protected $config;
 
-	/** @var AbstractProvider|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var AbstractProvider|MockObject */
 	protected $provider;
 
 	/**
@@ -68,14 +69,14 @@ abstract class AbstractNotificationProviderTest extends TestCase {
 	protected $calendarDisplayName;
 
 	/**
-	 * @var IUser|\PHPUnit\Framework\MockObject\MockObject
+	 * @var IUser|MockObject
 	 */
 	protected $user;
 
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->logger = $this->createMock(ILogger::class);
+		$this->logger = $this->createMock(LoggerInterface::class);
 		$this->l10nFactory = $this->createMock(L10NFactory::class);
 		$this->l10n = $this->createMock(IL10N::class);
 		$this->urlGenerator = $this->createMock(IURLGenerator::class);

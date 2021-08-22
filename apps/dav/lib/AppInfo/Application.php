@@ -33,6 +33,8 @@ declare(strict_types=1);
 namespace OCA\DAV\AppInfo;
 
 use Exception;
+use OC\Files\AppData\Factory;
+use OCA\DAV\BackgroundJob\RefreshWebcalJob;
 use OCA\DAV\BackgroundJob\UpdateCalendarResourcesRoomsBackgroundJob;
 use OCA\DAV\CalDAV\Activity\Backend;
 use OCA\DAV\CalDAV\BirthdayService;
@@ -83,12 +85,15 @@ use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCP\AppFramework\IAppContainer;
+use OCP\BackgroundJob\IJobList;
 use OCP\Calendar\IManager as ICalendarManager;
 use OCP\Contacts\IManager as IContactsManager;
-use OCP\ILogger;
 use OCP\IServerContainer;
+use OCP\IURLGenerator;
 use OCP\IUser;
+use OCP\IUserSession;
 use Psr\Container\ContainerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Throwable;
@@ -104,12 +109,11 @@ class Application extends App implements IBootstrap {
 	public function register(IRegistrationContext $context): void {
 		$context->registerServiceAlias('CardDAVSyncService', SyncService::class);
 		$context->registerService(PhotoCache::class, function (ContainerInterface $c) {
-			/** @var IServerContainer $server */
-			$server = $c->get(IServerContainer::class);
+			$factory = $c->get(Factory::class);
 
 			return new PhotoCache(
-				$server->getAppDataDir('dav-photocache'),
-				$c->get(ILogger::class)
+				$factory->get('dav-photocache'),
+				$c->get(LoggerInterface::class)
 			);
 		});
 
@@ -176,7 +180,7 @@ class Application extends App implements IBootstrap {
 	public function registerHooks(HookManager $hm,
 								   EventDispatcherInterface $dispatcher,
 								   IAppContainer $container,
-								   IServerContainer $serverContainer) {
+								   IServerContainer $serverContainer): void {
 		$hm->setup();
 
 		// first time login event setup
@@ -189,7 +193,7 @@ class Application extends App implements IBootstrap {
 		$birthdayListener = function ($event) use ($container): void {
 			if ($event instanceof GenericEvent) {
 				/** @var BirthdayService $b */
-				$b = $container->query(BirthdayService::class);
+				$b = $container->get(BirthdayService::class);
 				$b->onCardChanged(
 					(int) $event->getArgument('addressBookId'),
 					(string) $event->getArgument('cardUri'),
@@ -203,7 +207,7 @@ class Application extends App implements IBootstrap {
 		$dispatcher->addListener('\OCA\DAV\CardDAV\CardDavBackend::deleteCard', function ($event) use ($container) {
 			if ($event instanceof GenericEvent) {
 				/** @var BirthdayService $b */
-				$b = $container->query(BirthdayService::class);
+				$b = $container->get(BirthdayService::class);
 				$b->onCardDeleted(
 					(int) $event->getArgument('addressBookId'),
 					(string) $event->getArgument('cardUri')
@@ -247,7 +251,7 @@ class Application extends App implements IBootstrap {
 
 		$dispatcher->addListener('\OCA\DAV\CalDAV\CalDavBackend::publishCalendar', function (GenericEvent $event) use ($container) {
 			/** @var Backend $backend */
-			$backend = $container->query(Backend::class);
+			$backend = $container->get(Backend::class);
 			$backend->onCalendarPublication(
 				$event->getArgument('calendarData'),
 				$event->getArgument('public')
@@ -256,9 +260,9 @@ class Application extends App implements IBootstrap {
 
 
 		$dispatcher->addListener('OCP\Federation\TrustedServerEvent::remove',
-			function (GenericEvent $event) {
+			function (GenericEvent $event) use ($container) {
 				/** @var CardDavBackend $cardDavBackend */
-				$cardDavBackend = \OC::$server->query(CardDavBackend::class);
+				$cardDavBackend = $container->get(CardDavBackend::class);
 				$addressBookUri = $event->getSubject();
 				$addressBook = $cardDavBackend->getAddressBooksByUri('principals/system/system', $addressBookUri);
 				if (!is_null($addressBook)) {
@@ -269,7 +273,7 @@ class Application extends App implements IBootstrap {
 
 		$dispatcher->addListener('\OCA\DAV\CalDAV\CalDavBackend::createSubscription',
 			function (GenericEvent $event) use ($container, $serverContainer) {
-				$jobList = $serverContainer->getJobList();
+				$jobList = $serverContainer->get(IJobList::class);
 				$subscriptionData = $event->getArgument('subscriptionData');
 
 				/**
@@ -277,13 +281,13 @@ class Application extends App implements IBootstrap {
 				 *
 				 * @var RefreshWebcalService $refreshWebcalService
 				 */
-				$refreshWebcalService = $container->query(RefreshWebcalService::class);
+				$refreshWebcalService = $container->get(RefreshWebcalService::class);
 				$refreshWebcalService->refreshSubscription(
 					(string) $subscriptionData['principaluri'],
 					(string) $subscriptionData['uri']
 				);
 
-				$jobList->add(\OCA\DAV\BackgroundJob\RefreshWebcalJob::class, [
+				$jobList->add(RefreshWebcalJob::class, [
 					'principaluri' => $subscriptionData['principaluri'],
 					'uri' => $subscriptionData['uri']
 				]);
@@ -292,16 +296,16 @@ class Application extends App implements IBootstrap {
 
 		$dispatcher->addListener('\OCA\DAV\CalDAV\CalDavBackend::deleteSubscription',
 			function (GenericEvent $event) use ($container, $serverContainer) {
-				$jobList = $serverContainer->getJobList();
+				$jobList = $serverContainer->get(IJobList::class);
 				$subscriptionData = $event->getArgument('subscriptionData');
 
-				$jobList->remove(\OCA\DAV\BackgroundJob\RefreshWebcalJob::class, [
+				$jobList->remove(RefreshWebcalJob::class, [
 					'principaluri' => $subscriptionData['principaluri'],
 					'uri' => $subscriptionData['uri']
 				]);
 
 				/** @var CalDavBackend $calDavBackend */
-				$calDavBackend = $container->query(CalDavBackend::class);
+				$calDavBackend = $container->get(CalDavBackend::class);
 				$calDavBackend->purgeAllCachedEventsForSubscription($subscriptionData['id']);
 			}
 		);
@@ -309,11 +313,13 @@ class Application extends App implements IBootstrap {
 		$eventHandler = function () use ($container, $serverContainer): void {
 			try {
 				/** @var UpdateCalendarResourcesRoomsBackgroundJob $job */
-				$job = $container->query(UpdateCalendarResourcesRoomsBackgroundJob::class);
+				$job = $container->get(UpdateCalendarResourcesRoomsBackgroundJob::class);
 				$job->run([]);
-				$serverContainer->getJobList()->setLastRun($job);
+				/** @var IJobList $jobList */
+				$jobList = $serverContainer->get(IJobList::class);
+				$jobList->setLastRun($job);
 			} catch (Exception $ex) {
-				$serverContainer->getLogger()->logException($ex);
+				$serverContainer->get(LoggerInterface::class)->error($ex->getMessage(), ['exception'=>$ex]);
 			}
 		};
 
@@ -321,38 +327,37 @@ class Application extends App implements IBootstrap {
 		$dispatcher->addListener('\OCP\Calendar\Room\ForceRefreshEvent', $eventHandler);
 	}
 
-	public function registerContactsManager(IContactsManager $cm, IAppContainer $container): void {
-		$cm->register(function () use ($container, $cm): void {
-			$user = \OC::$server->getUserSession()->getUser();
+	public function registerContactsManager(IContactsManager $cm, IAppContainer $container, IURLGenerator $urlGenerator, IUserSession $userSession): void {
+		$cm->register(function () use ($container, $urlGenerator, $userSession, $cm): void {
+			$user = $userSession->getUser();
 			if (!is_null($user)) {
-				$this->setupContactsProvider($cm, $container, $user->getUID());
+				$this->setupContactsProvider($cm, $container, $urlGenerator, $user->getUID());
 			} else {
-				$this->setupSystemContactsProvider($cm, $container);
+				$this->setupSystemContactsProvider($cm, $container, $urlGenerator);
 			}
 		});
 	}
 
 	private function setupContactsProvider(IContactsManager $contactsManager,
 										   IAppContainer $container,
+										   IURLGenerator $urlGenerator,
 										   string $userID): void {
 		/** @var ContactsManager $cm */
-		$cm = $container->query(ContactsManager::class);
-		$urlGenerator = $container->getServer()->getURLGenerator();
+		$cm = $container->get(ContactsManager::class);
 		$cm->setupContactsProvider($contactsManager, $userID, $urlGenerator);
 	}
 
 	private function setupSystemContactsProvider(IContactsManager $contactsManager,
-												 IAppContainer $container): void {
+												 IAppContainer $container, IURLGenerator $urlGenerator): void {
 		/** @var ContactsManager $cm */
-		$cm = $container->query(ContactsManager::class);
-		$urlGenerator = $container->getServer()->getURLGenerator();
+		$cm = $container->get(ContactsManager::class);
 		$cm->setupSystemContactsProvider($contactsManager, $urlGenerator);
 	}
 
 	public function registerCalendarManager(ICalendarManager $calendarManager,
-											 IAppContainer $container): void {
-		$calendarManager->register(function () use ($container, $calendarManager) {
-			$user = \OC::$server->getUserSession()->getUser();
+											 IAppContainer $container, IUserSession $userSession): void {
+		$calendarManager->register(function () use ($container, $userSession, $calendarManager) {
+			$user = $userSession->getUser();
 			if ($user !== null) {
 				$this->setupCalendarProvider($calendarManager, $container, $user->getUID());
 			}
@@ -361,19 +366,19 @@ class Application extends App implements IBootstrap {
 
 	private function setupCalendarProvider(ICalendarManager $calendarManager,
 										   IAppContainer $container,
-										   $userId) {
-		$cm = $container->query(CalendarManager::class);
+										   $userId): void {
+		$cm = $container->get(CalendarManager::class);
 		$cm->setupCalendarProvider($calendarManager, $userId);
 	}
 
 	public function registerCalendarReminders(NotificationProviderManager $manager,
-											   ILogger $logger): void {
+											   LoggerInterface $logger): void {
 		try {
 			$manager->registerProvider(AudioProvider::class);
 			$manager->registerProvider(EmailProvider::class);
 			$manager->registerProvider(PushProvider::class);
 		} catch (Throwable $ex) {
-			$logger->logException($ex);
+			$logger->error($ex->getMessage(), ['exception' => $ex]);
 		}
 	}
 }

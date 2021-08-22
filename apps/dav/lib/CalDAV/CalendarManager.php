@@ -56,7 +56,7 @@ class CalendarManager {
 	 * @param IManager $cm
 	 * @param string $userId
 	 */
-	public function setupCalendarProvider(IManager $cm, $userId) {
+	public function setupCalendarProvider(IManager $cm, string $userId): void {
 		$calendars = $this->backend->getCalendarsForUser("principals/users/$userId");
 		$this->register($cm, $calendars);
 	}
@@ -65,7 +65,7 @@ class CalendarManager {
 	 * @param IManager $cm
 	 * @param array $calendars
 	 */
-	private function register(IManager $cm, array $calendars) {
+	private function register(IManager $cm, array $calendars): void {
 		foreach ($calendars as $calendarInfo) {
 			$calendar = new Calendar($this->backend, $calendarInfo, $this->l10n, $this->config);
 			$cm->registerCalendar(new CalendarImpl(

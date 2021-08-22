@@ -38,7 +38,9 @@
 namespace OCA\DAV\Connector\Sabre;
 
 use OC\KnownUser\KnownUserService;
+use OCA\Circles\Api\v1\Circles;
 use OCA\Circles\Exceptions\CircleNotFoundException;
+use OCA\Circles\Model\Circle;
 use OCA\DAV\CalDAV\Proxy\ProxyMapper;
 use OCA\DAV\Traits\PrincipalProxyTrait;
 use OCP\App\IAppManager;
@@ -212,7 +214,7 @@ class Principal implements BackendInterface {
 	 * @return array
 	 * @throws Exception
 	 */
-	public function getGroupMembership($principal, $needGroups = false) {
+	public function getGroupMembership($principal, bool $needGroups) {
 		[$prefix, $name] = \Sabre\Uri\split($principal);
 
 		if ($prefix !== $this->principalPrefix) {
@@ -233,12 +235,10 @@ class Principal implements BackendInterface {
 			}
 		}
 
-		$groups = array_unique(array_merge(
+		return array_unique(array_merge(
 			$groups,
 			$this->traitGetGroupMembership($principal, $needGroups)
 		));
-
-		return $groups;
 	}
 
 	/**
@@ -257,7 +257,7 @@ class Principal implements BackendInterface {
 	 * @param string $test
 	 * @return array
 	 */
-	protected function searchUserPrincipals(array $searchProperties, $test = 'allof') {
+	protected function searchUserPrincipals(array $searchProperties, string $test = 'allof'): array {
 		$results = [];
 
 		// If sharing is disabled, return the empty array
@@ -432,7 +432,7 @@ class Principal implements BackendInterface {
 	 * @param string $test
 	 * @return array
 	 */
-	public function searchPrincipals($prefixPath, array $searchProperties, $test = 'allof') {
+	public function searchPrincipals(string $prefixPath, array $searchProperties, string $test = 'allof'): array {
 		if (count($searchProperties) === 0) {
 			return [];
 		}
@@ -488,7 +488,7 @@ class Principal implements BackendInterface {
 				return $this->principalPrefix . '/' . $user->getUID();
 			}
 		}
-		if (substr($uri, 0, 10) === 'principal:') {
+		if (strpos($uri, 'principal:') === 0) {
 			$principal = substr($uri, 10);
 			$principal = $this->getPrincipalByPath($principal);
 			if ($principal !== null) {
@@ -503,7 +503,7 @@ class Principal implements BackendInterface {
 	 * @param IUser $user
 	 * @return array
 	 */
-	protected function userToPrincipal($user) {
+	protected function userToPrincipal(IUser $user): array {
 		$userId = $user->getUID();
 		$displayName = $user->getDisplayName();
 		$principal = [
@@ -521,7 +521,7 @@ class Principal implements BackendInterface {
 		return $principal;
 	}
 
-	public function getPrincipalPrefix() {
+	public function getPrincipalPrefix(): string {
 		return $this->principalPrefix;
 	}
 
@@ -529,13 +529,13 @@ class Principal implements BackendInterface {
 	 * @param string $circleUniqueId
 	 * @return array|null
 	 */
-	protected function circleToPrincipal($circleUniqueId) {
+	protected function circleToPrincipal(string $circleUniqueId): ?array {
 		if (!$this->appManager->isEnabledForUser('circles') || !class_exists('\OCA\Circles\Api\v1\Circles')) {
 			return null;
 		}
 
 		try {
-			$circle = \OCA\Circles\Api\v1\Circles::detailsCircle($circleUniqueId, true);
+			$circle = Circles::detailsCircle($circleUniqueId, true);
 		} catch (QueryException $ex) {
 			return null;
 		} catch (CircleNotFoundException $ex) {
@@ -560,10 +560,9 @@ class Principal implements BackendInterface {
 	 * @param string $principal
 	 * @return array
 	 * @throws Exception
-	 * @throws \OCP\AppFramework\QueryException
 	 * @suppress PhanUndeclaredClassMethod
 	 */
-	public function getCircleMembership($principal):array {
+	public function getCircleMembership(string $principal):array {
 		if (!$this->appManager->isEnabledForUser('circles') || !class_exists('\OCA\Circles\Api\v1\Circles')) {
 			return [];
 		}
@@ -575,10 +574,10 @@ class Principal implements BackendInterface {
 				throw new Exception('Principal not found');
 			}
 
-			$circles = \OCA\Circles\Api\v1\Circles::joinedCircles($name, true);
+			$circles = Circles::joinedCircles($name, true);
 
-			$circles = array_map(function ($circle) {
-				/** @var \OCA\Circles\Model\Circle $circle */
+			$circles = array_map(static function ($circle) {
+				/** @var Circle $circle */
 				return 'principals/circles/' . urlencode($circle->getSingleId());
 			}, $circles);
 

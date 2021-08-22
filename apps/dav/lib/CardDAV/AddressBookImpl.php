@@ -34,7 +34,11 @@ namespace OCA\DAV\CardDAV;
 use OCP\Constants;
 use OCP\IAddressBook;
 use OCP\IURLGenerator;
+use Sabre\DAV\Exception\BadRequest;
 use Sabre\VObject\Component\VCard;
+use Sabre\VObject\Document;
+use Sabre\VObject\InvalidDataException;
+use Sabre\VObject\Parameter;
 use Sabre\VObject\Property;
 use Sabre\VObject\Reader;
 use Sabre\VObject\UUIDUtil;
@@ -76,7 +80,7 @@ class AddressBookImpl implements IAddressBook {
 	 * @return string defining the technical unique key
 	 * @since 5.0.0
 	 */
-	public function getKey() {
+	public function getKey(): string {
 		return $this->addressBookInfo['id'];
 	}
 
@@ -94,7 +98,7 @@ class AddressBookImpl implements IAddressBook {
 	 * @return mixed
 	 * @since 5.0.0
 	 */
-	public function getDisplayName() {
+	public function getDisplayName(): ?string {
 		return $this->addressBookInfo['{DAV:}displayname'];
 	}
 
@@ -115,7 +119,7 @@ class AddressBookImpl implements IAddressBook {
 	 *	]
 	 * @since 5.0.0
 	 */
-	public function search($pattern, $searchProperties, $options) {
+	public function search(string $pattern, array $searchProperties, array $options): array {
 		$results = $this->backend->search($this->getKey(), $pattern, $searchProperties, $options);
 
 		$withTypes = \array_key_exists('types', $options) && $options['types'] === true;
@@ -131,9 +135,11 @@ class AddressBookImpl implements IAddressBook {
 	/**
 	 * @param array $properties this array if key-value-pairs defines a contact
 	 * @return array an array representing the contact just created or updated
+	 * @throws BadRequest
+	 * @throws InvalidDataException
 	 * @since 5.0.0
 	 */
-	public function createOrUpdate($properties) {
+	public function createOrUpdate(array $properties): array {
 		$update = false;
 		if (!isset($properties['URI'])) { // create a new contact
 			$uid = $this->createUid();
@@ -179,10 +185,10 @@ class AddressBookImpl implements IAddressBook {
 	}
 
 	/**
-	 * @return mixed
+	 * @return int
 	 * @since 5.0.0
 	 */
-	public function getPermissions() {
+	public function getPermissions(): int {
 		$permissions = $this->addressBook->getACL();
 		$result = 0;
 		foreach ($permissions as $permission) {
@@ -204,11 +210,11 @@ class AddressBookImpl implements IAddressBook {
 	}
 
 	/**
-	 * @param object $id the unique identifier to a contact
+	 * @param int $id the unique identifier to a contact
 	 * @return bool successful or not
 	 * @since 5.0.0
 	 */
-	public function delete($id) {
+	public function delete(int $id): bool {
 		$uri = $this->backend->getCardUri($id);
 		return $this->backend->deleteCard($this->addressBookInfo['id'], $uri);
 	}
@@ -217,10 +223,10 @@ class AddressBookImpl implements IAddressBook {
 	 * read vCard data into a vCard object
 	 *
 	 * @param string $cardData
-	 * @return VCard
+	 * @return Document
 	 */
-	protected function readCard($cardData) {
-		return  Reader::read($cardData);
+	protected function readCard(string $cardData): Document {
+		return Reader::read($cardData);
 	}
 
 	/**
@@ -228,7 +234,7 @@ class AddressBookImpl implements IAddressBook {
 	 *
 	 * @return string
 	 */
-	protected function createUid() {
+	protected function createUid(): string {
 		do {
 			$uid = $this->getUid();
 			$contact = $this->backend->getContact($this->getKey(), $uid . '.vcf');
@@ -240,7 +246,7 @@ class AddressBookImpl implements IAddressBook {
 	/**
 	 * getUid is only there for testing, use createUid instead
 	 */
-	protected function getUid() {
+	protected function getUid(): string {
 		return UUIDUtil::getUUID();
 	}
 
@@ -250,7 +256,7 @@ class AddressBookImpl implements IAddressBook {
 	 * @param string $uid
 	 * @return VCard
 	 */
-	protected function createEmptyVCard($uid) {
+	protected function createEmptyVCard(string $uid): VCard {
 		$vCard = new VCard();
 		$vCard->UID = $uid;
 		return $vCard;
@@ -264,7 +270,7 @@ class AddressBookImpl implements IAddressBook {
 	 * @param boolean $withTypes (optional) return the values as arrays of value/type pairs
 	 * @return array
 	 */
-	protected function vCard2Array($uri, VCard $vCard, $withTypes = false) {
+	protected function vCard2Array(string $uri, Document $vCard, bool $withTypes = false): array {
 		$result = [
 			'URI' => $uri,
 		];
@@ -312,11 +318,11 @@ class AddressBookImpl implements IAddressBook {
 	 * @param Property $property
 	 * @return null|string
 	 */
-	protected function getTypeFromProperty(Property $property) {
+	protected function getTypeFromProperty(Property $property): ?string {
 		$parameters = $property->parameters();
 		// Type is the social network, when it's empty we don't need this.
 		if (isset($parameters['TYPE'])) {
-			/** @var \Sabre\VObject\Parameter $type */
+			/** @var Parameter $type */
 			$type = $parameters['TYPE'];
 			return $type->getValue();
 		}

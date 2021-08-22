@@ -25,8 +25,11 @@
  */
 namespace OCA\DAV\Comments;
 
+use DateTime;
+use InvalidArgumentException;
 use OCP\Comments\IComment;
 use OCP\Comments\ICommentsManager;
+use OCP\Comments\MessageTooLongException;
 use OCP\IUserSession;
 use Sabre\DAV\Exception\BadRequest;
 use Sabre\DAV\Exception\NotFound;
@@ -39,6 +42,7 @@ use Sabre\DAV\Xml\Response\MultiStatus;
 use Sabre\HTTP\RequestInterface;
 use Sabre\HTTP\ResponseInterface;
 use Sabre\Xml\Writer;
+use function Sabre\HTTP\toDate;
 
 /**
  * Sabre plugin to handle comments:
@@ -55,10 +59,10 @@ class CommentsPlugin extends ServerPlugin {
 	/** @var ICommentsManager  */
 	protected $commentsManager;
 
-	/** @var \Sabre\DAV\Server $server */
+	/** @var Server $server */
 	private $server;
 
-	/** @var  \OCP\IUserSession */
+	/** @var  IUserSession */
 	protected $userSession;
 
 	/**
@@ -91,8 +95,8 @@ class CommentsPlugin extends ServerPlugin {
 
 		$this->server->xml->namespaceMap[self::NS_OWNCLOUD] = 'oc';
 
-		$this->server->xml->classMap['DateTime'] = function (Writer $writer, \DateTime $value) {
-			$writer->write(\Sabre\HTTP\toDate($value));
+		$this->server->xml->classMap['DateTime'] = static function (Writer $writer, DateTime $value) {
+			$writer->write(toDate($value));
 		};
 
 		$this->server->on('report', [$this, 'onReport']);
@@ -156,7 +160,7 @@ class CommentsPlugin extends ServerPlugin {
 	 * @throws NotFound
 	 * @throws ReportNotSupported
 	 */
-	public function onReport($reportName, $report, $uri) {
+	public function onReport(string $reportName, array $report, string $uri): bool {
 		$node = $this->server->tree->getNodeForPath($uri);
 		if (!$node instanceof EntityCollection || $reportName !== self::REPORT_NAME) {
 			throw new ReportNotSupported();
@@ -169,14 +173,14 @@ class CommentsPlugin extends ServerPlugin {
 		];
 		$ns = '{' . $this::NS_OWNCLOUD . '}';
 		foreach ($report as $parameter) {
-			if (!in_array($parameter['name'], $acceptableParameters) || empty($parameter['value'])) {
+			if (!in_array($parameter['name'], $acceptableParameters, true) || empty($parameter['value'])) {
 				continue;
 			}
 			$args[str_replace($ns, '', $parameter['name'])] = $parameter['value'];
 		}
 
 		if (!is_null($args['datetime'])) {
-			$args['datetime'] = new \DateTime($args['datetime']);
+			$args['datetime'] = new DateTime($args['datetime']);
 		}
 
 		$results = $node->findChildren($args['limit'], $args['offset'], $args['datetime']);
@@ -185,7 +189,7 @@ class CommentsPlugin extends ServerPlugin {
 		foreach ($results as $node) {
 			$nodePath = $this->server->getRequestUri() . '/' . $node->comment->getId();
 			$resultSet = $this->server->getPropertiesForPath($nodePath, CommentNode::getPropertyNames());
-			if (isset($resultSet[0]) && isset($resultSet[0][200])) {
+			if (isset($resultSet[0][200])) {
 				$responses[] = new Response(
 					$this->server->getBaseUri() . $nodePath,
 					[200 => $resultSet[0][200]],
@@ -218,7 +222,7 @@ class CommentsPlugin extends ServerPlugin {
 	 * @throws BadRequest if a field was missing
 	 * @throws UnsupportedMediaType if the content type is not supported
 	 */
-	private function createComment($objectType, $objectId, $data, $contentType = 'application/json') {
+	private function createComment(string $objectType, string $objectId, string $data, string $contentType = 'application/json'): IComment {
 		if (explode(';', $contentType)[0] === 'application/json') {
 			$data = json_decode($data, true);
 		} else {
@@ -243,11 +247,11 @@ class CommentsPlugin extends ServerPlugin {
 			$comment->setVerb($data['verb']);
 			$this->commentsManager->save($comment);
 			return $comment;
-		} catch (\InvalidArgumentException $e) {
+		} catch (InvalidArgumentException $e) {
 			throw new BadRequest('Invalid input values', 0, $e);
-		} catch (\OCP\Comments\MessageTooLongException $e) {
+		} catch (MessageTooLongException $e) {
 			$msg = 'Message exceeds allowed character limit of ';
-			throw new BadRequest($msg . \OCP\Comments\IComment::MAX_MESSAGE_LENGTH, 0,	$e);
+			throw new BadRequest($msg . IComment::MAX_MESSAGE_LENGTH, 0,	$e);
 		}
 	}
 }

@@ -39,7 +39,6 @@ use OCP\Defaults;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IL10N;
-use OCP\ILogger;
 use OCP\IURLGenerator;
 use OCP\IUserManager;
 use OCP\L10N\IFactory as L10NFactory;
@@ -47,6 +46,7 @@ use OCP\Mail\IEMailTemplate;
 use OCP\Mail\IMailer;
 use OCP\Security\ISecureRandom;
 use OCP\Util;
+use Psr\Log\LoggerInterface;
 use Sabre\CalDAV\Schedule\IMipPlugin as SabreIMipPlugin;
 use Sabre\VObject\Component\VCalendar;
 use Sabre\VObject\Component\VEvent;
@@ -81,7 +81,7 @@ class IMipPlugin extends SabreIMipPlugin {
 	/** @var IMailer */
 	private $mailer;
 
-	/** @var ILogger */
+	/** @var LoggerInterface */
 	private $logger;
 
 	/** @var ITimeFactory */
@@ -115,7 +115,7 @@ class IMipPlugin extends SabreIMipPlugin {
 	/**
 	 * @param IConfig $config
 	 * @param IMailer $mailer
-	 * @param ILogger $logger
+	 * @param LoggerInterface $logger
 	 * @param ITimeFactory $timeFactory
 	 * @param L10NFactory $l10nFactory
 	 * @param IUrlGenerator $urlGenerator
@@ -124,7 +124,7 @@ class IMipPlugin extends SabreIMipPlugin {
 	 * @param IDBConnection $db
 	 * @param string $userId
 	 */
-	public function __construct(IConfig $config, IMailer $mailer, ILogger $logger,
+	public function __construct(IConfig $config, IMailer $mailer, LoggerInterface $logger,
 								ITimeFactory $timeFactory, L10NFactory $l10nFactory,
 								IURLGenerator $urlGenerator, Defaults $defaults,
 								ISecureRandom $random, IDBConnection $db, IUserManager $userManager,
@@ -306,7 +306,7 @@ class IMipPlugin extends SabreIMipPlugin {
 				$iTipMessage->scheduleStatus = '5.0; EMail delivery failed';
 			}
 		} catch (\Exception $ex) {
-			$this->logger->logException($ex, ['app' => 'dav']);
+			$this->logger->error($ex->getMessage(), ['app' => 'dav', 'exception' => $ex]);
 			$iTipMessage->scheduleStatus = '5.0; EMail delivery failed';
 		}
 	}
@@ -362,7 +362,7 @@ class IMipPlugin extends SabreIMipPlugin {
 	 * @param Message $iTipMessage
 	 * @return null|Property
 	 */
-	private function getCurrentAttendee(Message $iTipMessage) {
+	private function getCurrentAttendee(Message $iTipMessage): ?Property {
 		/** @var VEvent $vevent */
 		$vevent = $iTipMessage->message->VEVENT;
 		$attendees = $vevent->select('ATTENDEE');
@@ -380,7 +380,7 @@ class IMipPlugin extends SabreIMipPlugin {
 	 * @param Property|null $attendee
 	 * @return string
 	 */
-	private function getAttendeeLangOrDefault($default, Property $attendee = null) {
+	private function getAttendeeLangOrDefault(string $default, Property $attendee = null): string {
 		if ($attendee !== null) {
 			$lang = $attendee->offsetGet('LANGUAGE');
 			if ($lang instanceof Parameter) {
@@ -394,7 +394,7 @@ class IMipPlugin extends SabreIMipPlugin {
 	 * @param Property|null $attendee
 	 * @return bool
 	 */
-	private function getAttendeeRsvpOrReqForParticipant(Property $attendee = null) {
+	private function getAttendeeRsvpOrReqForParticipant(Property $attendee = null): bool {
 		if ($attendee !== null) {
 			$rsvp = $attendee->offsetGet('RSVP');
 			if (($rsvp instanceof Parameter) && (strcasecmp($rsvp->getValue(), 'TRUE') === 0)) {
@@ -512,7 +512,7 @@ class IMipPlugin extends SabreIMipPlugin {
 	 * @param \DateTime $dtEnd
 	 * @return bool
 	 */
-	private function isDayEqual(\DateTime $dtStart, \DateTime $dtEnd) {
+	private function isDayEqual(\DateTime $dtStart, \DateTime $dtEnd): bool {
 		return $dtStart->format('Y-m-d') === $dtEnd->format('Y-m-d');
 	}
 
@@ -523,7 +523,7 @@ class IMipPlugin extends SabreIMipPlugin {
 	 * @param string $summary
 	 */
 	private function addSubjectAndHeading(IEMailTemplate $template, IL10N $l10n,
-										  $method, $summary) {
+										  string $method, string $summary): void {
 		if ($method === self::METHOD_CANCEL) {
 			// TRANSLATORS Subject for email, when an invitation is cancelled. Ex: "Cancelled: {{Event Name}}"
 			$template->setSubject($l10n->t('Cancelled: %1$s', [$summary]));
@@ -544,7 +544,7 @@ class IMipPlugin extends SabreIMipPlugin {
 	 * @param IL10N $l10n
 	 * @param VEVENT $vevent
 	 */
-	private function addBulletList(IEMailTemplate $template, IL10N $l10n, $vevent) {
+	private function addBulletList(IEMailTemplate $template, IL10N $l10n, VEvent $vevent): void {
 		if ($vevent->SUMMARY) {
 			$template->addBodyListItem($vevent->SUMMARY, $l10n->t('Title:'),
 				$this->getAbsoluteImagePath('caldav/title.png'),'','',self::IMIP_INDENT);
@@ -589,12 +589,11 @@ class IMipPlugin extends SabreIMipPlugin {
 	 *
 	 * @param IEMailTemplate $template
 	 * @param IL10N $l10n
-	 * @param Message $iTipMessage
-	 * @param int $lastOccurrence
+	 * @param VEvent $vevent
 	 * @author brad2014 on github.com
 	 */
 
-	private function addAttendees(IEMailTemplate $template, IL10N $l10n, VEvent $vevent) {
+	private function addAttendees(IEMailTemplate $template, IL10N $l10n, VEvent $vevent): void {
 		if ($this->config->getAppValue('dav', 'invitation_list_attendees', 'no') === 'no') {
 			return;
 		}
@@ -605,7 +604,7 @@ class IMipPlugin extends SabreIMipPlugin {
 			$organizerURI = $organizer->getNormalizedValue();
 			[$scheme,$organizerEmail] = explode(':',$organizerURI,2); # strip off scheme mailto:
 			/** @var string|null $organizerName */
-			$organizerName = isset($organizer['CN']) ? $organizer['CN'] : null;
+			$organizerName = $organizer['CN'] ?? null;
 			$organizerHTML = sprintf('<a href="%s">%s</a>',
 				htmlspecialchars($organizerURI),
 				htmlspecialchars($organizerName ?: $organizerEmail));
@@ -633,7 +632,7 @@ class IMipPlugin extends SabreIMipPlugin {
 		foreach ($attendees as $attendee) {
 			$attendeeURI = $attendee->getNormalizedValue();
 			[$scheme,$attendeeEmail] = explode(':',$attendeeURI,2); # strip off scheme mailto:
-			$attendeeName = isset($attendee['CN']) ? $attendee['CN'] : null;
+			$attendeeName = $attendee['CN'] ?? null;
 			$attendeeHTML = sprintf('<a href="%s">%s</a>',
 				htmlspecialchars($attendeeURI),
 				htmlspecialchars($attendeeName ?: $attendeeEmail));
@@ -659,7 +658,7 @@ class IMipPlugin extends SabreIMipPlugin {
 	 * @param int $lastOccurrence
 	 */
 	private function addResponseButtons(IEMailTemplate $template, IL10N $l10n,
-										Message $iTipMessage, $lastOccurrence) {
+										Message        $iTipMessage, int $lastOccurrence): void {
 		$token = $this->createInvitationToken($iTipMessage, $lastOccurrence);
 
 		$template->addBodyButtonGroup(
@@ -688,7 +687,7 @@ class IMipPlugin extends SabreIMipPlugin {
 	 * @param string $path
 	 * @return string
 	 */
-	private function getAbsoluteImagePath($path) {
+	private function getAbsoluteImagePath(string $path): string {
 		return $this->urlGenerator->getAbsoluteURL(
 			$this->urlGenerator->imagePath('core', $path)
 		);
@@ -699,7 +698,7 @@ class IMipPlugin extends SabreIMipPlugin {
 	 * @param int $lastOccurrence
 	 * @return string
 	 */
-	private function createInvitationToken(Message $iTipMessage, $lastOccurrence):string {
+	private function createInvitationToken(Message $iTipMessage, int $lastOccurrence):string {
 		$token = $this->random->generate(60, ISecureRandom::CHAR_ALPHANUMERIC);
 
 		/** @var VEvent $vevent */

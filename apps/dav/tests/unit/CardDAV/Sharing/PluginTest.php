@@ -31,6 +31,8 @@ use OCA\DAV\DAV\Sharing\IShareable;
 use OCA\DAV\DAV\Sharing\Plugin;
 use OCP\IConfig;
 use OCP\IRequest;
+use PHPUnit\Framework\MockObject\MockObject;
+use Sabre\DAV\Exception;
 use Sabre\DAV\Server;
 use Sabre\DAV\SimpleCollection;
 use Sabre\HTTP\Request;
@@ -43,13 +45,16 @@ class PluginTest extends TestCase {
 	private $plugin;
 	/** @var Server */
 	private $server;
-	/** @var IShareable | \PHPUnit\Framework\MockObject\MockObject */
+	/** @var IShareable | MockObject */
 	private $book;
 
+	/**
+	 * @throws Exception
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 
-		/** @var Auth | \PHPUnit\Framework\MockObject\MockObject $authBackend */
+		/** @var Auth | MockObject $authBackend */
 		$authBackend = $this->getMockBuilder(Auth::class)->disableOriginalConstructor()->getMock();
 		$authBackend->method('isDavAuthenticated')->willReturn(true);
 
@@ -59,7 +64,7 @@ class PluginTest extends TestCase {
 		$this->plugin = new Plugin($authBackend, $request, $config);
 
 		$root = new SimpleCollection('root');
-		$this->server = new \Sabre\DAV\Server($root);
+		$this->server = new Server($root);
 		/** @var SimpleCollection $node */
 		$this->book = $this->getMockBuilder(IShareable::class)->disableOriginalConstructor()->getMock();
 		$this->book->method('getName')->willReturn('addressbook1.vcf');
@@ -67,7 +72,7 @@ class PluginTest extends TestCase {
 		$this->plugin->initialize($this->server);
 	}
 
-	public function testSharing() {
+	public function testSharing(): void {
 		$this->book->expects($this->once())->method('updateShares')->with([[
 			'href' => 'principal:principals/admin',
 			'commonName' => null,

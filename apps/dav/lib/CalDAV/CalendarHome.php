@@ -28,8 +28,11 @@ namespace OCA\DAV\CalDAV;
 
 use OCA\DAV\AppInfo\PluginManager;
 use OCA\DAV\CalDAV\Integration\ExternalCalendar;
-use OCA\DAV\CalDAV\Integration\ICalendarProvider;
 use OCA\DAV\CalDAV\Trashbin\TrashbinHome;
+use OCP\App\IAppManager;
+use OCP\IConfig;
+use OCP\IL10N;
+use OCP\L10N\IFactory;
 use Sabre\CalDAV\Backend\BackendInterface;
 use Sabre\CalDAV\Backend\NotificationSupport;
 use Sabre\CalDAV\Backend\SchedulingSupport;
@@ -43,10 +46,10 @@ use Sabre\DAV\MkCol;
 
 class CalendarHome extends \Sabre\CalDAV\CalendarHome {
 
-	/** @var \OCP\IL10N */
+	/** @var IL10N */
 	private $l10n;
 
-	/** @var \OCP\IConfig */
+	/** @var IConfig */
 	private $config;
 
 	/** @var PluginManager */
@@ -57,18 +60,19 @@ class CalendarHome extends \Sabre\CalDAV\CalendarHome {
 
 	public function __construct(BackendInterface $caldavBackend, $principalInfo) {
 		parent::__construct($caldavBackend, $principalInfo);
-		$this->l10n = \OC::$server->getL10N('dav');
-		$this->config = \OC::$server->getConfig();
+		$l10nFactory = \OC::$server->get(IFactory::class);
+		$this->l10n = $l10nFactory->get('dav');
+		$this->config = \OC::$server->get(IConfig::class);
 		$this->pluginManager = new PluginManager(
 			\OC::$server,
-			\OC::$server->getAppManager()
+			\OC::$server->get(IAppManager::class)
 		);
 	}
 
 	/**
 	 * @return BackendInterface
 	 */
-	public function getCalDAVBackend() {
+	public function getCalDAVBackend(): BackendInterface {
 		return $this->caldavBackend;
 	}
 
@@ -124,7 +128,6 @@ class CalendarHome extends \Sabre\CalDAV\CalendarHome {
 		}
 
 		foreach ($this->pluginManager->getCalendarPlugins() as $calendarPlugin) {
-			/** @var ICalendarProvider $calendarPlugin */
 			$calendars = $calendarPlugin->fetchAllForCalendarHome($this->principalInfo['uri']);
 			foreach ($calendars as $calendar) {
 				$objects[] = $calendar;
@@ -177,7 +180,6 @@ class CalendarHome extends \Sabre\CalDAV\CalendarHome {
 			[$appId, $calendarUri] = ExternalCalendar::splitAppGeneratedCalendarUri($name);
 
 			foreach ($this->pluginManager->getCalendarPlugins() as $calendarPlugin) {
-				/** @var ICalendarProvider $calendarPlugin */
 				if ($calendarPlugin->getAppId() !== $appId) {
 					continue;
 				}
@@ -196,13 +198,13 @@ class CalendarHome extends \Sabre\CalDAV\CalendarHome {
 	 * @param integer|null $limit
 	 * @param integer|null $offset
 	 */
-	public function calendarSearch(array $filters, $limit = null, $offset = null) {
+	public function calendarSearch(array $filters, int $limit = null, int $offset = null) {
 		$principalUri = $this->principalInfo['uri'];
 		return $this->caldavBackend->calendarSearch($principalUri, $filters, $limit, $offset);
 	}
 
 
-	public function enableCachedSubscriptionsForThisRequest() {
+	public function enableCachedSubscriptionsForThisRequest(): void {
 		$this->returnCachedSubscriptions = true;
 	}
 }

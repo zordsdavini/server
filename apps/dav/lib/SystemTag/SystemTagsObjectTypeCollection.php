@@ -25,7 +25,7 @@
  */
 namespace OCA\DAV\SystemTag;
 
-use OCP\IGroupManager;
+use Closure;
 use OCP\IUserSession;
 use OCP\SystemTag\ISystemTagManager;
 use OCP\SystemTag\ISystemTagObjectMapper;
@@ -55,17 +55,12 @@ class SystemTagsObjectTypeCollection implements ICollection {
 	private $tagMapper;
 
 	/**
-	 * @var IGroupManager
-	 */
-	private $groupManager;
-
-	/**
 	 * @var IUserSession
 	 */
 	private $userSession;
 
 	/**
-	 * @var \Closure
+	 * @var Closure
 	 **/
 	protected $childExistsFunction;
 
@@ -76,29 +71,26 @@ class SystemTagsObjectTypeCollection implements ICollection {
 	 * @param ISystemTagManager $tagManager
 	 * @param ISystemTagObjectMapper $tagMapper
 	 * @param IUserSession $userSession
-	 * @param IGroupManager $groupManager
-	 * @param \Closure $childExistsFunction
+	 * @param Closure $childExistsFunction
 	 */
 	public function __construct(
-		$objectType,
+		string $objectType,
 		ISystemTagManager $tagManager,
 		ISystemTagObjectMapper $tagMapper,
 		IUserSession $userSession,
-		IGroupManager $groupManager,
-		\Closure $childExistsFunction
+		Closure $childExistsFunction
 	) {
 		$this->tagManager = $tagManager;
 		$this->tagMapper = $tagMapper;
 		$this->objectType = $objectType;
 		$this->userSession = $userSession;
-		$this->groupManager = $groupManager;
 		$this->childExistsFunction = $childExistsFunction;
 	}
 
 	/**
 	 * @param string $name
 	 * @param resource|string $data Initial payload
-	 * @return null|string
+	 * @return void
 	 * @throws Forbidden
 	 */
 	public function createFile($name, $data = null) {

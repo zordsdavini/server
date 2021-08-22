@@ -239,7 +239,7 @@ class EventsSearchProvider extends ACalendarSearchProvider {
 	 * @return bool
 	 */
 	protected function isDayEqual(\DateTime $dtStart,
-								  \DateTime $dtEnd) {
+								  \DateTime $dtEnd): bool {
 		return $dtStart->format('Y-m-d') === $dtEnd->format('Y-m-d');
 	}
 }

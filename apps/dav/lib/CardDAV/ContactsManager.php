@@ -52,7 +52,7 @@ class ContactsManager {
 	 * @param string $userId
 	 * @param IURLGenerator $urlGenerator
 	 */
-	public function setupContactsProvider(IManager $cm, $userId, IURLGenerator $urlGenerator) {
+	public function setupContactsProvider(IManager $cm, string $userId, IURLGenerator $urlGenerator): void {
 		$addressBooks = $this->backend->getAddressBooksForUser("principals/users/$userId");
 		$this->register($cm, $addressBooks, $urlGenerator);
 		$this->setupSystemContactsProvider($cm, $urlGenerator);
@@ -62,19 +62,19 @@ class ContactsManager {
 	 * @param IManager $cm
 	 * @param IURLGenerator $urlGenerator
 	 */
-	public function setupSystemContactsProvider(IManager $cm, IURLGenerator $urlGenerator) {
+	public function setupSystemContactsProvider(IManager $cm, IURLGenerator $urlGenerator): void {
 		$addressBooks = $this->backend->getAddressBooksForUser("principals/system/system");
 		$this->register($cm, $addressBooks, $urlGenerator);
 	}
 
 	/**
 	 * @param IManager $cm
-	 * @param $addressBooks
+	 * @param array $addressBooks
 	 * @param IURLGenerator $urlGenerator
 	 */
-	private function register(IManager $cm, $addressBooks, $urlGenerator) {
+	private function register(IManager $cm, array $addressBooks, IURLGenerator $urlGenerator): void {
 		foreach ($addressBooks as $addressBookInfo) {
-			$addressBook = new \OCA\DAV\CardDAV\AddressBook($this->backend, $addressBookInfo, $this->l10n);
+			$addressBook = new AddressBook($this->backend, $addressBookInfo, $this->l10n);
 			$cm->registerAddressBook(
 				new AddressBookImpl(
 					$addressBook,

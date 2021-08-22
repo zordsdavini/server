@@ -36,7 +36,7 @@ use OCP\IConfig;
  */
 class PartFileInRootUploadTest extends UploadTest {
 	protected function setUp(): void {
-		$config = \OC::$server->getConfig();
+		$config = \OC::$server->get(IConfig::class);
 		$mockConfig = $this->getMockBuilder(IConfig::class)
 			->disableOriginalConstructor()
 			->getMock();
@@ -45,9 +45,9 @@ class PartFileInRootUploadTest extends UploadTest {
 			->willReturnCallback(function ($key, $default) use ($config) {
 				if ($key === 'part_file_in_storage') {
 					return false;
-				} else {
-					return $config->getSystemValue($key, $default);
 				}
+
+				return $config->getSystemValue($key, $default);
 			});
 		$this->overwriteService('AllConfig', $mockConfig);
 		parent::setUp();

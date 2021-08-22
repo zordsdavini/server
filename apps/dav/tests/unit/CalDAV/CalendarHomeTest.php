@@ -32,17 +32,17 @@ use OCA\DAV\CalDAV\Integration\ExternalCalendar;
 use OCA\DAV\CalDAV\Integration\ICalendarProvider;
 use OCA\DAV\CalDAV\Outbox;
 use OCA\DAV\CalDAV\Trashbin\TrashbinHome;
+use PHPUnit\Framework\MockObject\MockObject;
 use Sabre\CalDAV\Schedule\Inbox;
+use Sabre\DAV\Exception\MethodNotAllowed;
+use Sabre\DAV\Exception\NotFound;
 use Sabre\DAV\MkCol;
 use Test\TestCase;
 
 class CalendarHomeTest extends TestCase {
 
-	/** @var CalDavBackend | \PHPUnit\Framework\MockObject\MockObject */
+	/** @var CalDavBackend | MockObject */
 	private $backend;
-
-	/** @var array */
-	private $principalInfo = [];
 
 	/** @var PluginManager */
 	private $pluginManager;
@@ -54,13 +54,13 @@ class CalendarHomeTest extends TestCase {
 		parent::setUp();
 
 		$this->backend = $this->createMock(CalDavBackend::class);
-		$this->principalInfo = [
+		$principalInfo = [
 			'uri' => 'user-principal-123',
 		];
 		$this->pluginManager = $this->createMock(PluginManager::class);
 
 		$this->calendarHome = new CalendarHome($this->backend,
-			$this->principalInfo);
+			$principalInfo);
 
 		// Replace PluginManager with our mock
 		$reflection = new \ReflectionClass($this->calendarHome);
@@ -69,8 +69,8 @@ class CalendarHomeTest extends TestCase {
 		$reflectionProperty->setValue($this->calendarHome, $this->pluginManager);
 	}
 
-	public function testCreateCalendarValidName() {
-		/** @var MkCol | \PHPUnit\Framework\MockObject\MockObject $mkCol */
+	public function testCreateCalendarValidName(): void {
+		/** @var MkCol | MockObject $mkCol */
 		$mkCol = $this->createMock(MkCol::class);
 
 		$mkCol->method('getResourceType')
@@ -86,21 +86,21 @@ class CalendarHomeTest extends TestCase {
 		$this->calendarHome->createExtendedCollection('name123', $mkCol);
 	}
 
-	public function testCreateCalendarReservedName() {
-		$this->expectException(\Sabre\DAV\Exception\MethodNotAllowed::class);
+	public function testCreateCalendarReservedName(): void {
+		$this->expectException(MethodNotAllowed::class);
 		$this->expectExceptionMessage('The resource you tried to create has a reserved name');
 
-		/** @var MkCol | \PHPUnit\Framework\MockObject\MockObject $mkCol */
+		/** @var MkCol | MockObject $mkCol */
 		$mkCol = $this->createMock(MkCol::class);
 
 		$this->calendarHome->createExtendedCollection('contact_birthdays', $mkCol);
 	}
 
-	public function testCreateCalendarReservedNameAppGenerated() {
-		$this->expectException(\Sabre\DAV\Exception\MethodNotAllowed::class);
+	public function testCreateCalendarReservedNameAppGenerated(): void {
+		$this->expectException(MethodNotAllowed::class);
 		$this->expectExceptionMessage('The resource you tried to create has a reserved name');
 
-		/** @var MkCol | \PHPUnit\Framework\MockObject\MockObject $mkCol */
+		/** @var MkCol | MockObject $mkCol */
 		$mkCol = $this->createMock(MkCol::class);
 
 		$this->calendarHome->createExtendedCollection('app-generated--example--foo-1', $mkCol);
@@ -168,7 +168,7 @@ class CalendarHomeTest extends TestCase {
 			->expects($this->never())
 			->method('getCalendarPlugins');
 
-		$this->expectException(\Sabre\DAV\Exception\NotFound::class);
+		$this->expectException(NotFound::class);
 		$this->expectExceptionMessage('Node with name \'personal\' could not be found');
 
 		$this->calendarHome->getChild('personal');

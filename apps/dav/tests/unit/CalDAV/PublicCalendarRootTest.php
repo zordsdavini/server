@@ -37,11 +37,15 @@ use OCA\DAV\CalDAV\PublicCalendarRoot;
 use OCA\DAV\Connector\Sabre\Principal;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IConfig;
+use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\IL10N;
-use OCP\ILogger;
 use OCP\IUserManager;
 use OCP\Security\ISecureRandom;
+use PHPUnit\Framework\MockObject\MockObject;
+use Psr\Log\LoggerInterface;
+use Sabre\DAV\Exception;
+use Sabre\DAV\Exception\NotFound;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Test\TestCase;
 
@@ -60,38 +64,33 @@ class PublicCalendarRootTest extends TestCase {
 	private $publicCalendarRoot;
 	/** @var IL10N */
 	private $l10n;
-	/** @var Principal|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var Principal|MockObject */
 	private $principal;
-	/** @var IUserManager|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IUserManager|MockObject */
 	protected $userManager;
-	/** @var IGroupManager|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IGroupManager|MockObject */
 	protected $groupManager;
 	/** @var IConfig */
 	protected $config;
 
-	/** @var ISecureRandom */
-	private $random;
-	/** @var ILogger */
-	private $logger;
-
 	protected function setUp(): void {
 		parent::setUp();
 
-		$db = \OC::$server->getDatabaseConnection();
-		$this->principal = $this->createMock('OCA\DAV\Connector\Sabre\Principal');
+		$db = \OC::$server->get(IDBConnection::class);
+		$this->principal = $this->createMock(Principal::class);
 		$this->userManager = $this->createMock(IUserManager::class);
 		$this->groupManager = $this->createMock(IGroupManager::class);
-		$this->random = \OC::$server->getSecureRandom();
-		$this->logger = $this->createMock(ILogger::class);
+		$random = \OC::$server->get(ISecureRandom::class);
+		$logger = $this->createMock(LoggerInterface::class);
 		$dispatcher = $this->createMock(IEventDispatcher::class);
 		$legacyDispatcher = $this->createMock(EventDispatcherInterface::class);
 		$config = $this->createMock(IConfig::class);
 
-		$this->principal->expects($this->any())->method('getGroupMembership')
+		$this->principal->method('getGroupMembership')
 			->withAnyParameters()
 			->willReturn([]);
 
-		$this->principal->expects($this->any())->method('getCircleMembership')
+		$this->principal->method('getCircleMembership')
 			->withAnyParameters()
 			->willReturn([]);
 
@@ -100,8 +99,8 @@ class PublicCalendarRootTest extends TestCase {
 			$this->principal,
 			$this->userManager,
 			$this->groupManager,
-			$this->random,
-			$this->logger,
+			$random,
+			$logger,
 			$dispatcher,
 			$legacyDispatcher,
 			$config
@@ -120,11 +119,11 @@ class PublicCalendarRootTest extends TestCase {
 		if (is_null($this->backend)) {
 			return;
 		}
-		$this->principal->expects($this->any())->method('getGroupMembership')
+		$this->principal->method('getGroupMembership')
 			->withAnyParameters()
 			->willReturn([]);
 
-		$this->principal->expects($this->any())->method('getCircleMembership')
+		$this->principal->method('getCircleMembership')
 			->withAnyParameters()
 			->willReturn([]);
 
@@ -134,16 +133,20 @@ class PublicCalendarRootTest extends TestCase {
 		}
 	}
 
-	public function testGetName() {
+	public function testGetName(): void {
 		$name = $this->publicCalendarRoot->getName();
 		$this->assertEquals('public-calendars', $name);
 	}
 
-	public function testGetChild() {
+	/**
+	 * @throws Exception
+	 * @throws NotFound
+	 */
+	public function testGetChild(): void {
 		$calendar = $this->createPublicCalendar();
 
 		$publicCalendars = $this->backend->getPublicCalendars();
-		$this->assertEquals(1, count($publicCalendars));
+		$this->assertCount(1, $publicCalendars);
 		$this->assertEquals(true, $publicCalendars[0]['{http://owncloud.org/ns}public']);
 
 		$publicCalendarURI = $publicCalendars[0]['uri'];
@@ -152,16 +155,22 @@ class PublicCalendarRootTest extends TestCase {
 		$this->assertEquals($calendar, $calendarResult);
 	}
 
-	public function testGetChildren() {
+	/**
+	 * @throws Exception
+	 * @throws NotFound
+	 */
+	public function testGetChildren(): void {
 		$this->createPublicCalendar();
 		$calendarResults = $this->publicCalendarRoot->getChildren();
 		$this->assertSame([], $calendarResults);
 	}
 
 	/**
-	 * @return Calendar
+	 * @return PublicCalendar
+	 * @throws Exception
+	 * @throws NotFound
 	 */
-	protected function createPublicCalendar() {
+	protected function createPublicCalendar(): PublicCalendar {
 		$this->backend->createCalendar(self::UNIT_TEST_USER, 'Example', []);
 
 		$calendarInfo = $this->backend->getCalendarsForUser(self::UNIT_TEST_USER)[0];
@@ -169,8 +178,6 @@ class PublicCalendarRootTest extends TestCase {
 		$publicUri = $calendar->setPublishStatus(true);
 
 		$calendarInfo = $this->backend->getPublicCalendar($publicUri);
-		$calendar = new PublicCalendar($this->backend, $calendarInfo, $this->l10n, $this->config);
-
-		return $calendar;
+		return new PublicCalendar($this->backend, $calendarInfo, $this->l10n, $this->config);
 	}
 }

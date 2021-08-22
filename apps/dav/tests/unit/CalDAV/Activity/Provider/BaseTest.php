@@ -62,11 +62,11 @@ class BaseTest extends TestCase {
 				$this->groupManager,
 				$this->url,
 			])
-			->setMethods(['parse'])
+			->onlyMethods(['parse'])
 			->getMock();
 	}
 
-	public function dataSetSubjects() {
+	public function dataSetSubjects(): array {
 		return [
 			['abc', [], 'abc'],
 			['{actor} created {calendar}', ['actor' => ['name' => 'abc'], 'calendar' => ['name' => 'xyz']], 'abc created xyz'],
@@ -79,7 +79,7 @@ class BaseTest extends TestCase {
 	 * @param array $parameters
 	 * @param string $parsedSubject
 	 */
-	public function testSetSubjects(string $subject, array $parameters, string $parsedSubject) {
+	public function testSetSubjects(string $subject, array $parameters, string $parsedSubject): void {
 		$event = $this->createMock(IEvent::class);
 		$event->expects($this->once())
 			->method('setRichSubject')
@@ -90,10 +90,10 @@ class BaseTest extends TestCase {
 			->with($parsedSubject)
 			->willReturnSelf();
 
-		$this->invokePrivate($this->provider, 'setSubjects', [$event, $subject, $parameters]);
+		self::invokePrivate($this->provider, 'setSubjects', [$event, $subject, $parameters]);
 	}
 
-	public function dataGenerateCalendarParameter() {
+	public function dataGenerateCalendarParameter(): array {
 		return [
 			[['id' => 23, 'uri' => 'foo', 'name' => 'bar'], 'bar'],
 			[['id' => 42, 'uri' => 'foo', 'name' => 'Personal'], 'Personal'],
@@ -107,7 +107,7 @@ class BaseTest extends TestCase {
 	 * @param array $data
 	 * @param string $name
 	 */
-	public function testGenerateCalendarParameter(array $data, string $name) {
+	public function testGenerateCalendarParameter(array $data, string $name): void {
 		$l = $this->createMock(IL10N::class);
 		$l->expects($this->any())
 			->method('t')
@@ -119,10 +119,10 @@ class BaseTest extends TestCase {
 			'type' => 'calendar',
 			'id' => $data['id'],
 			'name' => $name,
-		], $this->invokePrivate($this->provider, 'generateCalendarParameter', [$data, $l]));
+		], self::invokePrivate($this->provider, 'generateCalendarParameter', [$data, $l]));
 	}
 
-	public function dataGenerateLegacyCalendarParameter() {
+	public function dataGenerateLegacyCalendarParameter(): array {
 		return [
 			[23, 'c1'],
 			[42, 'c2'],
@@ -134,15 +134,15 @@ class BaseTest extends TestCase {
 	 * @param int $id
 	 * @param string $name
 	 */
-	public function testGenerateLegacyCalendarParameter(int $id, string $name) {
+	public function testGenerateLegacyCalendarParameter(int $id, string $name): void {
 		$this->assertEquals([
 			'type' => 'calendar',
 			'id' => $id,
 			'name' => $name,
-		], $this->invokePrivate($this->provider, 'generateLegacyCalendarParameter', [$id, $name]));
+		], self::invokePrivate($this->provider, 'generateLegacyCalendarParameter', [$id, $name]));
 	}
 
-	public function dataGenerateGroupParameter() {
+	public function dataGenerateGroupParameter(): array {
 		return [
 			['g1'],
 			['g2'],
@@ -153,15 +153,15 @@ class BaseTest extends TestCase {
 	 * @dataProvider dataGenerateGroupParameter
 	 * @param string $gid
 	 */
-	public function testGenerateGroupParameter(string $gid) {
+	public function testGenerateGroupParameter(string $gid): void {
 		$this->assertEquals([
 			'type' => 'user-group',
 			'id' => $gid,
 			'name' => $gid,
-		], $this->invokePrivate($this->provider, 'generateGroupParameter', [$gid]));
+		], self::invokePrivate($this->provider, 'generateGroupParameter', [$gid]));
 	}
 
-	public function dataGenerateUserParameter() {
+	public function dataGenerateUserParameter(): array {
 		$u1 = $this->createMock(IUser::class);
 		$u1->expects($this->any())
 			->method('getDisplayName')
@@ -178,7 +178,7 @@ class BaseTest extends TestCase {
 	 * @param string $displayName
 	 * @param IUser|null $user
 	 */
-	public function testGenerateUserParameter(string $uid, string $displayName, ?IUser $user) {
+	public function testGenerateUserParameter(string $uid, string $displayName, ?IUser $user): void {
 		$this->userManager->expects($this->once())
 			->method('get')
 			->with($uid)
@@ -188,13 +188,13 @@ class BaseTest extends TestCase {
 			'type' => 'user',
 			'id' => $uid,
 			'name' => $displayName,
-		], $this->invokePrivate($this->provider, 'generateUserParameter', [$uid]));
+		], self::invokePrivate($this->provider, 'generateUserParameter', [$uid]));
 
 		// Test caching (only 1 user manager invocation allowed)
 		$this->assertEquals([
 			'type' => 'user',
 			'id' => $uid,
 			'name' => $displayName,
-		], $this->invokePrivate($this->provider, 'generateUserParameter', [$uid]));
+		], self::invokePrivate($this->provider, 'generateUserParameter', [$uid]));
 	}
 }

@@ -28,30 +28,36 @@ namespace OCA\DAV\Tests\unit\Comments;
 use OC\EventDispatcher\EventDispatcher;
 use OC\EventDispatcher\SymfonyAdapter;
 use OCA\DAV\Comments\EntityTypeCollection as EntityTypeCollectionImplementation;
+use OCA\DAV\Comments\RootCollection;
 use OCP\Comments\CommentsEntityEvent;
 use OCP\Comments\ICommentsManager;
 use OCP\ILogger;
 use OCP\IUser;
 use OCP\IUserManager;
 use OCP\IUserSession;
+use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Log\LoggerInterface;
+use Sabre\DAV\Exception\Forbidden;
+use Sabre\DAV\Exception\NotAuthenticated;
+use Sabre\DAV\Exception\NotFound;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Test\TestCase;
 
-class RootCollectionTest extends \Test\TestCase {
+class RootCollectionTest extends TestCase {
 
-	/** @var \OCP\Comments\ICommentsManager|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var ICommentsManager|MockObject */
 	protected $commentsManager;
-	/** @var \OCP\IUserManager|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IUserManager|MockObject */
 	protected $userManager;
-	/** @var \OCP\ILogger|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var LoggerInterface|MockObject */
 	protected $logger;
-	/** @var \OCA\DAV\Comments\RootCollection */
+	/** @var RootCollection */
 	protected $collection;
-	/** @var \OCP\IUserSession|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IUserSession|MockObject */
 	protected $userSession;
 	/** @var EventDispatcherInterface */
 	protected $dispatcher;
-	/** @var \OCP\IUser|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IUser|MockObject */
 	protected $user;
 
 	protected function setUp(): void {
@@ -70,7 +76,7 @@ class RootCollectionTest extends \Test\TestCase {
 		$this->userSession = $this->getMockBuilder(IUserSession::class)
 			->disableOriginalConstructor()
 			->getMock();
-		$this->logger = $this->getMockBuilder(ILogger::class)
+		$this->logger = $this->getMockBuilder(LoggerInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$this->dispatcher = new SymfonyAdapter(
@@ -79,10 +85,12 @@ class RootCollectionTest extends \Test\TestCase {
 				\OC::$server,
 				$this->createMock(LoggerInterface::class)
 			),
-			$this->logger
+			$this->getMockBuilder(ILogger::class)
+				->disableOriginalConstructor()
+				->getMock()
 		);
 
-		$this->collection = new \OCA\DAV\Comments\RootCollection(
+		$this->collection = new RootCollection(
 			$this->commentsManager,
 			$this->userManager,
 			$this->userSession,
@@ -91,7 +99,7 @@ class RootCollectionTest extends \Test\TestCase {
 		);
 	}
 
-	protected function prepareForInitCollections() {
+	protected function prepareForInitCollections(): void {
 		$this->user->expects($this->any())
 			->method('getUID')
 			->willReturn('alice');
@@ -108,92 +116,92 @@ class RootCollectionTest extends \Test\TestCase {
 	}
 
 
-	public function testCreateFile() {
-		$this->expectException(\Sabre\DAV\Exception\Forbidden::class);
+	public function testCreateFile(): void {
+		$this->expectException(Forbidden::class);
 
 		$this->collection->createFile('foo');
 	}
 
 
-	public function testCreateDirectory() {
-		$this->expectException(\Sabre\DAV\Exception\Forbidden::class);
+	public function testCreateDirectory(): void {
+		$this->expectException(Forbidden::class);
 
 		$this->collection->createDirectory('foo');
 	}
 
-	public function testGetChild() {
+	public function testGetChild(): void {
 		$this->prepareForInitCollections();
 		$etc = $this->collection->getChild('files');
-		$this->assertTrue($etc instanceof EntityTypeCollectionImplementation);
+		$this->assertInstanceOf(EntityTypeCollectionImplementation::class, $etc);
 	}
 
 
-	public function testGetChildInvalid() {
-		$this->expectException(\Sabre\DAV\Exception\NotFound::class);
+	public function testGetChildInvalid(): void {
+		$this->expectException(NotFound::class);
 
 		$this->prepareForInitCollections();
 		$this->collection->getChild('robots');
 	}
 
 
-	public function testGetChildNoAuth() {
-		$this->expectException(\Sabre\DAV\Exception\NotAuthenticated::class);
+	public function testGetChildNoAuth(): void {
+		$this->expectException(NotAuthenticated::class);
 
 		$this->collection->getChild('files');
 	}
 
-	public function testGetChildren() {
+	public function testGetChildren(): void {
 		$this->prepareForInitCollections();
 		$children = $this->collection->getChildren();
-		$this->assertFalse(empty($children));
+		$this->assertNotEmpty($children);
 		foreach ($children as $child) {
-			$this->assertTrue($child instanceof EntityTypeCollectionImplementation);
+			$this->assertInstanceOf(EntityTypeCollectionImplementation::class, $child);
 		}
 	}
 
 
-	public function testGetChildrenNoAuth() {
-		$this->expectException(\Sabre\DAV\Exception\NotAuthenticated::class);
+	public function testGetChildrenNoAuth(): void {
+		$this->expectException(NotAuthenticated::class);
 
 		$this->collection->getChildren();
 	}
 
-	public function testChildExistsYes() {
+	public function testChildExistsYes(): void {
 		$this->prepareForInitCollections();
 		$this->assertTrue($this->collection->childExists('files'));
 	}
 
-	public function testChildExistsNo() {
+	public function testChildExistsNo(): void {
 		$this->prepareForInitCollections();
 		$this->assertFalse($this->collection->childExists('robots'));
 	}
 
 
-	public function testChildExistsNoAuth() {
-		$this->expectException(\Sabre\DAV\Exception\NotAuthenticated::class);
+	public function testChildExistsNoAuth(): void {
+		$this->expectException(NotAuthenticated::class);
 
 		$this->collection->childExists('files');
 	}
 
 
-	public function testDelete() {
-		$this->expectException(\Sabre\DAV\Exception\Forbidden::class);
+	public function testDelete(): void {
+		$this->expectException(Forbidden::class);
 
 		$this->collection->delete();
 	}
 
-	public function testGetName() {
+	public function testGetName(): void {
 		$this->assertSame('comments', $this->collection->getName());
 	}
 
 
-	public function testSetName() {
-		$this->expectException(\Sabre\DAV\Exception\Forbidden::class);
+	public function testSetName(): void {
+		$this->expectException(Forbidden::class);
 
 		$this->collection->setName('foobar');
 	}
 
-	public function testGetLastModified() {
-		$this->assertSame(null, $this->collection->getLastModified());
+	public function testGetLastModified(): void {
+		$this->assertNull($this->collection->getLastModified());
 	}
 }

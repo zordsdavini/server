@@ -26,45 +26,83 @@
  *
  */
 // Backends
+use OC\Authentication\TwoFactorAuth\Manager;
+use OC\Files\AppData\Factory;
 use OC\KnownUser\KnownUserService;
+use OC\Security\Bruteforce\Throttler;
 use OCA\DAV\AppInfo\PluginManager;
+use OCA\DAV\CalDAV\Proxy\ProxyMapper;
 use OCA\DAV\CardDAV\AddressBookRoot;
 use OCA\DAV\CardDAV\CardDavBackend;
+use OCA\DAV\CardDAV\ImageExportPlugin;
+use OCA\DAV\CardDAV\PhotoCache;
 use OCA\DAV\Connector\LegacyDAVACL;
 use OCA\DAV\Connector\Sabre\Auth;
 use OCA\DAV\Connector\Sabre\ExceptionLoggerPlugin;
 use OCA\DAV\Connector\Sabre\MaintenancePlugin;
 use OCA\DAV\Connector\Sabre\Principal;
 use OCP\App\IAppManager;
+use OCP\EventDispatcher\IEventDispatcher;
+use OCP\IConfig;
+use OCP\IDBConnection;
+use OCP\IGroupManager;
+use OCP\IRequest;
+use OCP\ISession;
+use OCP\IUserManager;
+use OCP\IUserSession;
+use OCP\L10N\IFactory;
+use OCP\Share\IManager;
+use Psr\Log\LoggerInterface;
+use Sabre\CalDAV\Principal\Collection;
 use Sabre\CardDAV\Plugin;
+use Sabre\CardDAV\VCFExportPlugin;
+use Sabre\DAV\Server;
+use Sabre\DAV\Auth\Plugin as AuthPlugin;
+use Sabre\DAV\Browser\Plugin as BrowserPlugin;
+use Sabre\DAV\Sync\Plugin as SyncPlugin;
+
+/** @var IUserSession $userSession */
+$userSession = \OC::$server->get(IUserSession::class);
+/** @var IRequest $request */
+$request = \OC::$server->get(IRequest::class);
+/** @var IUserManager $userManager */
+$userManager = \OC::$server->get(IUserManager::class);
+/** @var IGroupManager $groupManager */
+$groupManager = \OC::$server->get(IGroupManager::class);
+/** @var IFactory $i10nFactory */
+$i10nFactory = \OC::$server->get(IFactory::class);
+/** @var IConfig $config */
+$config = \OC::$server->get(IConfig::class);
+/** @var LoggerInterface $logger */
+$logger = \OC::$server->get(LoggerInterface::class);
 
 $authBackend = new Auth(
-	\OC::$server->getSession(),
-	\OC::$server->getUserSession(),
-	\OC::$server->getRequest(),
-	\OC::$server->getTwoFactorAuthManager(),
-	\OC::$server->getBruteForceThrottler(),
+	\OC::$server->get(ISession::class),
+	$userSession,
+	$request,
+	\OC::$server->get(Manager::class),
+	\OC::$server->get(Throttler::class),
 	'principals/'
 );
 $principalBackend = new Principal(
-	\OC::$server->getUserManager(),
-	\OC::$server->getGroupManager(),
-	\OC::$server->getShareManager(),
-	\OC::$server->getUserSession(),
-	\OC::$server->getAppManager(),
-	\OC::$server->query(\OCA\DAV\CalDAV\Proxy\ProxyMapper::class),
+	$userManager,
+	$groupManager,
+	\OC::$server->get(IManager::class),
+	$userSession,
+	\OC::$server->get(IAppManager::class),
+	\OC::$server->get(ProxyMapper::class),
 	\OC::$server->get(KnownUserService::class),
-	\OC::$server->getConfig(),
-	\OC::$server->getL10NFactory(),
+	$config,
+	$i10nFactory,
 	'principals/'
 );
-$db = \OC::$server->getDatabaseConnection();
-$cardDavBackend = new CardDavBackend($db, $principalBackend, \OC::$server->getUserManager(), \OC::$server->getGroupManager(), \OC::$server->get(\OCP\EventDispatcher\IEventDispatcher::class), \OC::$server->getEventDispatcher());
+$db = \OC::$server->get(IDBConnection::class);
+$cardDavBackend = new CardDavBackend($db, $principalBackend, $userManager, $groupManager, \OC::$server->get(IEventDispatcher::class), \OC::$server->getEventDispatcher());
 
-$debugging = \OC::$server->getConfig()->getSystemValue('debug', false);
+$debugging = $config->getSystemValueBool('debug', false);
 
 // Root nodes
-$principalCollection = new \Sabre\CalDAV\Principal\Collection($principalBackend);
+$principalCollection = new Collection($principalBackend);
 $principalCollection->disableListing = !$debugging; // Disable listing
 
 $pluginManager = new PluginManager(\OC::$server, \OC::$server->query(IAppManager::class));
@@ -77,27 +115,30 @@ $nodes = [
 ];
 
 // Fire up server
-$server = new \Sabre\DAV\Server($nodes);
+$server = new Server($nodes);
 $server::$exposeVersion = false;
-$server->httpRequest->setUrl(\OC::$server->getRequest()->getRequestUri());
+$server->httpRequest->setUrl($request->getRequestUri());
 $server->setBaseUri($baseuri);
 // Add plugins
-$server->addPlugin(new MaintenancePlugin(\OC::$server->getConfig(), \OC::$server->getL10N('dav')));
-$server->addPlugin(new \Sabre\DAV\Auth\Plugin($authBackend, 'ownCloud'));
+$server->addPlugin(new MaintenancePlugin($config, $i10nFactory->get('dav')));
+$server->addPlugin(new AuthPlugin($authBackend, 'ownCloud'));
 $server->addPlugin(new Plugin());
 
 $server->addPlugin(new LegacyDAVACL());
 if ($debugging) {
-	$server->addPlugin(new Sabre\DAV\Browser\Plugin());
+	$server->addPlugin(new BrowserPlugin());
 }
 
-$server->addPlugin(new \Sabre\DAV\Sync\Plugin());
-$server->addPlugin(new \Sabre\CardDAV\VCFExportPlugin());
-$server->addPlugin(new \OCA\DAV\CardDAV\ImageExportPlugin(new \OCA\DAV\CardDAV\PhotoCache(
-	\OC::$server->getAppDataDir('dav-photocache'),
-	\OC::$server->getLogger()
+$server->addPlugin(new SyncPlugin());
+$server->addPlugin(new VCFExportPlugin());
+/** @var Factory $appDataFactory */
+$appDataFactory = $this->get(Factory::class);
+
+$server->addPlugin(new ImageExportPlugin(new PhotoCache(
+	$appDataFactory->get('dav-photocache'),
+	$logger
 )));
-$server->addPlugin(new ExceptionLoggerPlugin('carddav', \OC::$server->getLogger()));
+$server->addPlugin(new ExceptionLoggerPlugin('carddav', $logger));
 
 // And off we go!
-$server->exec();
+$server->start();

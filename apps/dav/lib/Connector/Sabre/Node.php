@@ -38,16 +38,24 @@ namespace OCA\DAV\Connector\Sabre;
 use OC\Files\Mount\MoveableMount;
 use OC\Files\View;
 use OCA\DAV\Connector\Sabre\Exception\InvalidPath;
+use OCA\Files_Sharing\SharedStorage;
+use OCP\Constants;
 use OCP\Files\FileInfo;
+use OCP\Files\InvalidPathException;
 use OCP\Files\StorageNotAvailableException;
+use OCP\IUser;
+use OCP\Lock\LockedException;
 use OCP\Share\IShare;
 use OCP\Share\Exceptions\ShareNotFound;
 use OCP\Share\IManager;
+use Sabre\DAV\Exception;
+use Sabre\DAV\Exception\Forbidden;
+use Sabre\DAV\INode;
 
-abstract class Node implements \Sabre\DAV\INode {
+abstract class Node implements INode {
 
 	/**
-	 * @var \OC\Files\View
+	 * @var View
 	 */
 	protected $fileView;
 
@@ -66,7 +74,7 @@ abstract class Node implements \Sabre\DAV\INode {
 	protected $property_cache = null;
 
 	/**
-	 * @var \OCP\Files\FileInfo
+	 * @var FileInfo
 	 */
 	protected $info;
 
@@ -78,9 +86,9 @@ abstract class Node implements \Sabre\DAV\INode {
 	/**
 	 * Sets up the node, expects a full path name
 	 *
-	 * @param \OC\Files\View $view
-	 * @param \OCP\Files\FileInfo $info
-	 * @param IManager $shareManager
+	 * @param View $view
+	 * @param FileInfo $info
+	 * @param IManager|null $shareManager
 	 */
 	public function __construct(View $view, FileInfo $info, IManager $shareManager = null) {
 		$this->fileView = $view;
@@ -89,11 +97,11 @@ abstract class Node implements \Sabre\DAV\INode {
 		if ($shareManager) {
 			$this->shareManager = $shareManager;
 		} else {
-			$this->shareManager = \OC::$server->getShareManager();
+			$this->shareManager = \OC::$server->get(IManager::class);
 		}
 	}
 
-	protected function refreshInfo() {
+	protected function refreshInfo(): void {
 		$this->info = $this->fileView->getFileInfo($this->path);
 	}
 
@@ -111,7 +119,7 @@ abstract class Node implements \Sabre\DAV\INode {
 	 *
 	 * @return string
 	 */
-	public function getPath() {
+	public function getPath(): string {
 		return $this->path;
 	}
 
@@ -119,14 +127,16 @@ abstract class Node implements \Sabre\DAV\INode {
 	 * Renames the node
 	 *
 	 * @param string $name The new name
-	 * @throws \Sabre\DAV\Exception\BadRequest
-	 * @throws \Sabre\DAV\Exception\Forbidden
+	 * @throws InvalidPath
+	 * @throws LockedException
+	 * @throws Exception
+	 * @throws Forbidden
 	 */
 	public function setName($name) {
 
 		// rename is only allowed if the update privilege is granted
 		if (!($this->info->isUpdateable() || ($this->info->getMountPoint() instanceof MoveableMount && $this->info->getInternalPath() === ''))) {
-			throw new \Sabre\DAV\Exception\Forbidden();
+			throw new Forbidden();
 		}
 
 		[$parentPath,] = \Sabre\Uri\split($this->path);
@@ -138,7 +148,7 @@ abstract class Node implements \Sabre\DAV\INode {
 		$newPath = $parentPath . '/' . $newName;
 
 		if (!$this->fileView->rename($this->path, $newPath)) {
-			throw new \Sabre\DAV\Exception('Failed to rename '. $this->path . ' to ' . $newPath);
+			throw new Exception('Failed to rename '. $this->path . ' to ' . $newPath);
 		}
 
 		$this->path = $newPath;
@@ -146,7 +156,7 @@ abstract class Node implements \Sabre\DAV\INode {
 		$this->refreshInfo();
 	}
 
-	public function setPropertyCache($property_cache) {
+	public function setPropertyCache($property_cache): void {
 		$this->property_cache = $property_cache;
 	}
 
@@ -156,11 +166,7 @@ abstract class Node implements \Sabre\DAV\INode {
 	 * @return int timestamp as integer
 	 */
 	public function getLastModified() {
-		$timestamp = $this->info->getMtime();
-		if (!empty($timestamp)) {
-			return (int)$timestamp;
-		}
-		return $timestamp;
+		return $this->info->getMtime();
 	}
 
 	/**
@@ -168,7 +174,7 @@ abstract class Node implements \Sabre\DAV\INode {
 	 *  in the second parameter or to now if the second param is empty.
 	 *  Even if the modification time is set to a custom value the access time is set to now.
 	 */
-	public function touch($mtime) {
+	public function touch($mtime): void {
 		$mtime = $this->sanitizeMtime($mtime);
 		$this->fileView->touch($this->path, $mtime);
 		$this->refreshInfo();
@@ -185,7 +191,7 @@ abstract class Node implements \Sabre\DAV\INode {
 	 *
 	 * @return string
 	 */
-	public function getETag() {
+	public function getETag(): string {
 		return '"' . $this->info->getEtag() . '"';
 	}
 
@@ -196,15 +202,15 @@ abstract class Node implements \Sabre\DAV\INode {
 	 *
 	 * @return int file id of updated file or -1 on failure
 	 */
-	public function setETag($etag) {
+	public function setETag(string $etag): int {
 		return $this->fileView->putFileInfo($this->path, ['etag' => $etag]);
 	}
 
-	public function setCreationTime(int $time) {
+	public function setCreationTime(int $time): int {
 		return $this->fileView->putFileInfo($this->path, ['creation_time' => $time]);
 	}
 
-	public function setUploadTime(int $time) {
+	public function setUploadTime(int $time): int {
 		return $this->fileView->putFileInfo($this->path, ['upload_time' => $time]);
 	}
 
@@ -213,7 +219,7 @@ abstract class Node implements \Sabre\DAV\INode {
 	 *
 	 * @return integer
 	 */
-	public function getSize() {
+	public function getSize(): int {
 		return $this->info->getSize();
 	}
 
@@ -222,14 +228,14 @@ abstract class Node implements \Sabre\DAV\INode {
 	 *
 	 * @return int
 	 */
-	public function getId() {
+	public function getId(): int {
 		return $this->info->getId();
 	}
 
 	/**
 	 * @return string|null
 	 */
-	public function getFileId() {
+	public function getFileId(): ?string {
 		if ($this->info->getId()) {
 			$instanceId = \OC_Util::getInstanceId();
 			$id = sprintf('%08d', $this->info->getId());
@@ -242,15 +248,15 @@ abstract class Node implements \Sabre\DAV\INode {
 	/**
 	 * @return integer
 	 */
-	public function getInternalFileId() {
+	public function getInternalFileId(): int {
 		return $this->info->getId();
 	}
 
 	/**
-	 * @param string $user
+	 * @param string|null $user
 	 * @return int
 	 */
-	public function getSharePermissions($user) {
+	public function getSharePermissions(?string $user) {
 
 		// check of we access a federated share
 		if ($user !== null) {
@@ -268,9 +274,9 @@ abstract class Node implements \Sabre\DAV\INode {
 			$storage = null;
 		}
 
-		if ($storage && $storage->instanceOfStorage('\OCA\Files_Sharing\SharedStorage')) {
-			/** @var \OCA\Files_Sharing\SharedStorage $storage */
-			$permissions = (int)$storage->getShare()->getPermissions();
+		if ($storage && $storage->instanceOfStorage(SharedStorage::class)) {
+			/** @var SharedStorage $storage */
+			$permissions = $storage->getShare()->getPermissions();
 		} else {
 			$permissions = $this->info->getPermissions();
 		}
@@ -287,25 +293,25 @@ abstract class Node implements \Sabre\DAV\INode {
 			}
 
 			if (!$mountpoint->getOption('readonly', false) && $mountpointpath === $this->info->getPath()) {
-				$permissions |= \OCP\Constants::PERMISSION_DELETE | \OCP\Constants::PERMISSION_UPDATE;
+				$permissions |= Constants::PERMISSION_DELETE | Constants::PERMISSION_UPDATE;
 			}
 		}
 
 		/*
 		 * Files can't have create or delete permissions
 		 */
-		if ($this->info->getType() === \OCP\Files\FileInfo::TYPE_FILE) {
-			$permissions &= ~(\OCP\Constants::PERMISSION_CREATE | \OCP\Constants::PERMISSION_DELETE);
+		if ($this->info->getType() === FileInfo::TYPE_FILE) {
+			$permissions &= ~(Constants::PERMISSION_CREATE | Constants::PERMISSION_DELETE);
 		}
 
 		return $permissions;
 	}
 
 	/**
-	 * @param string $user
+	 * @param string|null $user
 	 * @return string
 	 */
-	public function getNoteFromShare($user) {
+	public function getNoteFromShare(?string $user): string {
 		if ($user === null) {
 			return '';
 		}
@@ -321,7 +327,7 @@ abstract class Node implements \Sabre\DAV\INode {
 			$shares = $this->shareManager->getSharedWith($user, $shareType, $this, -1);
 			foreach ($shares as $share) {
 				$note = $share->getNote();
-				if ($share->getShareOwner() !== $user && !empty($note)) {
+				if (!empty($note) && $share->getShareOwner() !== $user) {
 					return $note;
 				}
 			}
@@ -333,7 +339,7 @@ abstract class Node implements \Sabre\DAV\INode {
 	/**
 	 * @return string
 	 */
-	public function getDavPermissions() {
+	public function getDavPermissions(): string {
 		$p = '';
 		if ($this->info->isShared()) {
 			$p .= 'S';
@@ -353,7 +359,7 @@ abstract class Node implements \Sabre\DAV\INode {
 		if ($this->info->isUpdateable()) {
 			$p .= 'NV'; // Renameable, Moveable
 		}
-		if ($this->info->getType() === \OCP\Files\FileInfo::TYPE_FILE) {
+		if ($this->info->getType() === FileInfo::TYPE_FILE) {
 			if ($this->info->isUpdateable()) {
 				$p .= 'W';
 			}
@@ -365,15 +371,15 @@ abstract class Node implements \Sabre\DAV\INode {
 		return $p;
 	}
 
-	public function getOwner() {
+	public function getOwner(): IUser {
 		return $this->info->getOwner();
 	}
 
-	protected function verifyPath() {
+	protected function verifyPath(): void {
 		try {
 			$fileName = basename($this->info->getPath());
 			$this->fileView->verifyPath($this->path, $fileName);
-		} catch (\OCP\Files\InvalidPathException $ex) {
+		} catch (InvalidPathException $ex) {
 			throw new InvalidPath($ex->getMessage());
 		}
 	}
@@ -381,29 +387,29 @@ abstract class Node implements \Sabre\DAV\INode {
 	/**
 	 * @param int $type \OCP\Lock\ILockingProvider::LOCK_SHARED or \OCP\Lock\ILockingProvider::LOCK_EXCLUSIVE
 	 */
-	public function acquireLock($type) {
+	public function acquireLock(int $type): void {
 		$this->fileView->lockFile($this->path, $type);
 	}
 
 	/**
 	 * @param int $type \OCP\Lock\ILockingProvider::LOCK_SHARED or \OCP\Lock\ILockingProvider::LOCK_EXCLUSIVE
 	 */
-	public function releaseLock($type) {
+	public function releaseLock(int $type): void {
 		$this->fileView->unlockFile($this->path, $type);
 	}
 
 	/**
 	 * @param int $type \OCP\Lock\ILockingProvider::LOCK_SHARED or \OCP\Lock\ILockingProvider::LOCK_EXCLUSIVE
 	 */
-	public function changeLock($type) {
+	public function changeLock(int $type): void {
 		$this->fileView->changeLock($this->path, $type);
 	}
 
-	public function getFileInfo() {
+	public function getFileInfo(): FileInfo {
 		return $this->info;
 	}
 
-	protected function sanitizeMtime($mtimeFromRequest) {
+	protected function sanitizeMtime($mtimeFromRequest): int {
 		// In PHP 5.X "is_numeric" returns true for strings in hexadecimal
 		// notation. This is no longer the case in PHP 7.X, so this check
 		// ensures that strings with hexadecimal notations fail too in PHP 5.X.

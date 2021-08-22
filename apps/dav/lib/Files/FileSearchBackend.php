@@ -32,6 +32,7 @@ use OC\Files\Search\SearchQuery;
 use OC\Files\View;
 use OCA\DAV\Connector\Sabre\CachingTree;
 use OCA\DAV\Connector\Sabre\Directory;
+use OCA\DAV\Connector\Sabre\File;
 use OCA\DAV\Connector\Sabre\FilesPlugin;
 use OCA\DAV\Connector\Sabre\TagsPlugin;
 use OCP\Files\Cache\ICacheEntry;
@@ -162,9 +163,9 @@ class FileSearchBackend implements ISearchBackend {
 		/** @var SearchResult[] $nodes */
 		$nodes = array_map(function (Node $node) {
 			if ($node instanceof Folder) {
-				$davNode = new \OCA\DAV\Connector\Sabre\Directory($this->view, $node, $this->tree, $this->shareManager);
+				$davNode = new Directory($this->view, $node, $this->tree, $this->shareManager);
 			} else {
-				$davNode = new \OCA\DAV\Connector\Sabre\File($this->view, $node, $this->shareManager);
+				$davNode = new File($this->view, $node, $this->shareManager);
 			}
 			$path = $this->getHrefForNode($node);
 			$this->tree->cacheNode($davNode, $path);
@@ -217,7 +218,7 @@ class FileSearchBackend implements ISearchBackend {
 		return 0;
 	}
 
-	private function compareProperties($a, $b, Order $order) {
+	private function compareProperties($a, $b, Order $order): int {
 		switch ($order->property->dataType) {
 			case SearchPropertyDefinition::DATATYPE_STRING:
 				return strcmp($a, $b);
@@ -262,7 +263,7 @@ class FileSearchBackend implements ISearchBackend {
 	 * @param Node $node
 	 * @return string
 	 */
-	private function getHrefForNode(Node $node) {
+	private function getHrefForNode(Node $node): string {
 		$base = '/files/' . $this->user->getUID();
 		return $base . $this->view->getRelativePath($node->getPath());
 	}
@@ -343,7 +344,7 @@ class FileSearchBackend implements ISearchBackend {
 	 * @param SearchPropertyDefinition $property
 	 * @return string
 	 */
-	private function mapPropertyNameToColumn(SearchPropertyDefinition $property) {
+	private function mapPropertyNameToColumn(SearchPropertyDefinition $property): string {
 		switch ($property->name) {
 			case '{DAV:}displayname':
 				return 'name';

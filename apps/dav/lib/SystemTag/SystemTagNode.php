@@ -34,11 +34,12 @@ use Sabre\DAV\Exception\Conflict;
 use Sabre\DAV\Exception\Forbidden;
 use Sabre\DAV\Exception\MethodNotAllowed;
 use Sabre\DAV\Exception\NotFound;
+use Sabre\DAV\INode;
 
 /**
  * DAV node representing a system tag, with the name being the tag id.
  */
-class SystemTagNode implements \Sabre\DAV\INode {
+class SystemTagNode implements INode {
 
 	/**
 	 * @var ISystemTag
@@ -72,7 +73,7 @@ class SystemTagNode implements \Sabre\DAV\INode {
 	 * @param bool $isAdmin whether to allow operations for admins
 	 * @param ISystemTagManager $tagManager tag manager
 	 */
-	public function __construct(ISystemTag $tag, IUser $user, $isAdmin, ISystemTagManager $tagManager) {
+	public function __construct(ISystemTag $tag, IUser $user, bool $isAdmin, ISystemTagManager $tagManager) {
 		$this->tag = $tag;
 		$this->user = $user;
 		$this->isAdmin = $isAdmin;
@@ -93,7 +94,7 @@ class SystemTagNode implements \Sabre\DAV\INode {
 	 *
 	 * @return ISystemTag system tag
 	 */
-	public function getSystemTag() {
+	public function getSystemTag(): ISystemTag {
 		return $this->tag;
 	}
 
@@ -118,7 +119,7 @@ class SystemTagNode implements \Sabre\DAV\INode {
 	 * @throws Forbidden whenever there is no permission to update said tag
 	 * @throws Conflict whenever a tag already exists with the given attributes
 	 */
-	public function update($name, $userVisible, $userAssignable) {
+	public function update(string $name, bool $userVisible, bool $userAssignable): void {
 		try {
 			if (!$this->tagManager->canUserSeeTag($this->tag, $this->user)) {
 				throw new NotFound('Tag with id ' . $this->tag->getId() . ' does not exist');

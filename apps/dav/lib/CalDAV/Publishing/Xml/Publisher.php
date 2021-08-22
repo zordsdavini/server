@@ -42,7 +42,7 @@ class Publisher implements XmlSerializable {
 	 * @param string $publishUrl
 	 * @param boolean $isPublished
 	 */
-	public function __construct($publishUrl, $isPublished) {
+	public function __construct(string $publishUrl, bool $isPublished) {
 		$this->publishUrl = $publishUrl;
 		$this->isPublished = $isPublished;
 	}
@@ -50,7 +50,7 @@ class Publisher implements XmlSerializable {
 	/**
 	 * @return string
 	 */
-	public function getValue() {
+	public function getValue(): string {
 		return $this->publishUrl;
 	}
 

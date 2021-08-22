@@ -34,15 +34,17 @@ namespace OCA\DAV\CalDAV\Reminder\NotificationProvider;
 use DateTime;
 use OCP\IConfig;
 use OCP\IL10N;
-use OCP\ILogger;
 use OCP\IURLGenerator;
 use OCP\L10N\IFactory as L10NFactory;
 use OCP\Mail\IEMailTemplate;
 use OCP\Mail\IMailer;
+use OCP\Util;
+use Psr\Log\LoggerInterface;
 use Sabre\VObject;
 use Sabre\VObject\Component\VEvent;
 use Sabre\VObject\Parameter;
 use Sabre\VObject\Property;
+use function in_array;
 
 /**
  * Class EmailProvider
@@ -60,13 +62,13 @@ class EmailProvider extends AbstractProvider {
 	/**
 	 * @param IConfig $config
 	 * @param IMailer $mailer
-	 * @param ILogger $logger
+	 * @param LoggerInterface $logger
 	 * @param L10NFactory $l10nFactory
 	 * @param IUrlGenerator $urlGenerator
 	 */
 	public function __construct(IConfig $config,
 								IMailer $mailer,
-								ILogger $logger,
+								LoggerInterface $logger,
 								L10NFactory $l10nFactory,
 								IURLGenerator $urlGenerator) {
 		parent::__construct($logger, $l10nFactory, $urlGenerator, $config);
@@ -105,7 +107,7 @@ class EmailProvider extends AbstractProvider {
 				$lang = $fallbackLanguage;
 			}
 			$l10n = $this->getL10NForLang($lang);
-			$fromEMail = \OCP\Util::getDefaultEmailAddress('reminders-noreply');
+			$fromEMail = Util::getDefaultEmailAddress('reminders-noreply');
 
 			$template = $this->mailer->createEMailTemplate('dav.calendarReminder');
 			$template->addHeader();
@@ -133,7 +135,7 @@ class EmailProvider extends AbstractProvider {
 						$this->logger->error('Unable to deliver message to {failed}', ['app' => 'dav', 'failed' => implode(', ', $failed)]);
 					}
 				} catch (\Exception $ex) {
-					$this->logger->logException($ex, ['app' => 'dav']);
+					$this->logger->error($ex->getMessage(), ['app' => 'dav', 'exception' => $ex]);
 				}
 			}
 		}
@@ -153,7 +155,8 @@ class EmailProvider extends AbstractProvider {
 	 * @param IEMailTemplate $template
 	 * @param IL10N $l10n
 	 * @param string $calendarDisplayName
-	 * @param array $eventData
+	 * @param VEvent $vevent
+	 * @throws \Exception
 	 */
 	private function addBulletList(IEMailTemplate $template,
 								   IL10N $l10n,
@@ -223,11 +226,7 @@ class EmailProvider extends AbstractProvider {
 		$sortedByLanguage = [];
 
 		foreach ($emails as $emailAddress => $parameters) {
-			if (isset($parameters['LANG'])) {
-				$lang = $parameters['LANG'];
-			} else {
-				$lang = $defaultLanguage;
-			}
+			$lang = $parameters['LANG'] ?? $defaultLanguage;
 
 			if (!isset($sortedByLanguage[$lang])) {
 				$sortedByLanguage[$lang] = [];
@@ -253,7 +252,7 @@ class EmailProvider extends AbstractProvider {
 				}
 
 				$cuType = $this->getCUTypeOfAttendee($attendee);
-				if (\in_array($cuType, ['RESOURCE', 'ROOM', 'UNKNOWN'])) {
+				if (in_array($cuType, ['RESOURCE', 'ROOM', 'UNKNOWN'])) {
 					// Don't send emails to things
 					continue;
 				}
@@ -385,7 +384,6 @@ class EmailProvider extends AbstractProvider {
 		/** @var Property\ICalendar\Date | Property\ICalendar\DateTime $dtend */
 		/** @var \DateTimeImmutable $dtstartDt */
 		$dtstartDt = $vevent->DTSTART->getDateTime();
-		/** @var \DateTimeImmutable $dtendDt */
 		$dtendDt = $this->getDTEndFromEvent($vevent)->getDateTime();
 
 		$diff = $dtstartDt->diff($dtendDt);

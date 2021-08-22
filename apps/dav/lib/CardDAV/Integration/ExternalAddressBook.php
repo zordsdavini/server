@@ -91,35 +91,6 @@ abstract class ExternalAddressBook implements IAddressBook, DAV\IProperties {
 	}
 
 	/**
-	 * Checks whether the address book uri is app-generated
-	 *
-	 * @param string $uri
-	 *
-	 * @return bool
-	 */
-	public static function isAppGeneratedAddressBook(string $uri): bool {
-		return strpos($uri, self::PREFIX) === 0 && substr_count($uri, self::DELIMITER) >= 2;
-	}
-
-	/**
-	 * Splits an app-generated uri into appId and uri
-	 *
-	 * @param string $uri
-	 *
-	 * @return array
-	 */
-	public static function splitAppGeneratedAddressBookUri(string $uri): array {
-		$array = array_slice(explode(self::DELIMITER, $uri, 3), 1);
-		// Check the array has expected amount of elements
-		// and none of them is an empty string
-		if (\count($array) !== 2 || \in_array('', $array, true)) {
-			throw new \InvalidArgumentException('Provided address book uri was not app-generated');
-		}
-
-		return $array;
-	}
-
-	/**
 	 * Checks whether a address book name the user wants to create violates
 	 * the reserved name for URIs
 	 *

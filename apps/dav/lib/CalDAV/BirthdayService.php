@@ -38,6 +38,7 @@ use OCA\DAV\DAV\GroupPrincipalBackend;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IL10N;
+use Sabre\DAV\Exception\BadRequest;
 use Sabre\VObject\Component\VCalendar;
 use Sabre\VObject\Component\VCard;
 use Sabre\VObject\DateTimeParser;
@@ -103,7 +104,7 @@ class BirthdayService {
 	 */
 	public function onCardChanged(int $addressBookId,
 								  string $cardUri,
-								  string $cardData) {
+								  string $cardData): void {
 		if (!$this->isGloballyEnabled()) {
 			return;
 		}
@@ -134,7 +135,7 @@ class BirthdayService {
 	 * @param string $cardUri
 	 */
 	public function onCardDeleted(int $addressBookId,
-								  string $cardUri) {
+								  string $cardUri): void {
 		if (!$this->isGloballyEnabled()) {
 			return;
 		}
@@ -158,7 +159,7 @@ class BirthdayService {
 	/**
 	 * @param string $principal
 	 * @return array|null
-	 * @throws \Sabre\DAV\Exception\BadRequest
+	 * @throws BadRequest
 	 */
 	public function ensureCalendarExists(string $principal):?array {
 		$calendar = $this->calDavBackEnd->getCalendarByUri($principal, self::BIRTHDAY_CALENDAR_URI);
@@ -175,9 +176,9 @@ class BirthdayService {
 	}
 
 	/**
-	 * @param $cardData
-	 * @param $dateField
-	 * @param $postfix
+	 * @param string $cardData
+	 * @param string $dateField
+	 * @param string $postfix
 	 * @return VCalendar|null
 	 * @throws InvalidDataException
 	 */
@@ -238,7 +239,7 @@ class BirthdayService {
 			} else {
 				$originalYear = (int)$dateParts['year'];
 				// 'X-APPLE-OMIT-YEAR' is not always present, at least iOS 12.4 uses the hard coded date of 1604 (the start of the gregorian calendar) when the year is unknown
-				if ($originalYear == 1604) {
+				if ($originalYear === 1604) {
 					$originalYear = null;
 					$unknownYear = true;
 					$birthday = '1970-' . $dateParts['month'] . '-' . $dateParts['date'];
@@ -312,7 +313,7 @@ class BirthdayService {
 
 	/**
 	 * @param string $user
-	 * @throws \Sabre\DAV\Exception\BadRequest
+	 * @throws BadRequest
 	 */
 	public function syncUser(string $user):void {
 		$principal = 'principals/users/'.$user;
@@ -372,7 +373,7 @@ class BirthdayService {
 	 * @param int $calendarId
 	 * @param array $type
 	 * @throws InvalidDataException
-	 * @throws \Sabre\DAV\Exception\BadRequest
+	 * @throws BadRequest
 	 */
 	private function updateCalendar(string $cardUri,
 									string $cardData,

@@ -25,6 +25,7 @@ namespace OCA\DAV\DAV\Sharing\Xml;
 use OCA\DAV\DAV\Sharing\Plugin;
 use Sabre\Xml\Reader;
 use Sabre\Xml\XmlDeserializable;
+use Sabre\Xml\Element\KeyValue;
 
 class ShareRequest implements XmlDeserializable {
 	public $set = [];
@@ -42,10 +43,10 @@ class ShareRequest implements XmlDeserializable {
 		$this->remove = $remove;
 	}
 
-	public static function xmlDeserialize(Reader $reader) {
+	public static function xmlDeserialize(Reader $reader): ShareRequest {
 		$elements = $reader->parseInnerTree([
-			'{' . Plugin::NS_OWNCLOUD. '}set' => 'Sabre\\Xml\\Element\\KeyValue',
-			'{' . Plugin::NS_OWNCLOUD . '}remove' => 'Sabre\\Xml\\Element\\KeyValue',
+			'{' . Plugin::NS_OWNCLOUD. '}set' => KeyValue::class,
+			'{' . Plugin::NS_OWNCLOUD . '}remove' => KeyValue::class,
 		]);
 
 		$set = [];
@@ -62,8 +63,8 @@ class ShareRequest implements XmlDeserializable {
 
 					$set[] = [
 						'href' => $sharee['{DAV:}href'],
-						'commonName' => isset($sharee[$commonName]) ? $sharee[$commonName] : null,
-						'summary' => isset($sharee[$sumElem]) ? $sharee[$sumElem] : null,
+						'commonName' => $sharee[$commonName] ?? null,
+						'summary' => $sharee[$sumElem] ?? null,
 						'readOnly' => !array_key_exists('{' . Plugin::NS_OWNCLOUD . '}read-write', $sharee),
 					];
 					break;

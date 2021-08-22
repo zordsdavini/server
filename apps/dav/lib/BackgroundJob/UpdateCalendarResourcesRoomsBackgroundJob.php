@@ -33,6 +33,7 @@ use OCP\Calendar\Resource\IManager as IResourceManager;
 use OCP\Calendar\Resource\IResource;
 use OCP\Calendar\Room\IManager as IRoomManager;
 use OCP\Calendar\Room\IRoom;
+use OCP\DB\Exception;
 use OCP\IDBConnection;
 
 class UpdateCalendarResourcesRoomsBackgroundJob extends TimedJob {
@@ -72,6 +73,7 @@ class UpdateCalendarResourcesRoomsBackgroundJob extends TimedJob {
 
 	/**
 	 * @param $argument
+	 * @throws Exception
 	 */
 	public function run($argument):void {
 		$this->runForBackend(
@@ -99,6 +101,7 @@ class UpdateCalendarResourcesRoomsBackgroundJob extends TimedJob {
 	 * @param string $dbTableMetadata
 	 * @param string $foreignKey
 	 * @param string $principalPrefix
+	 * @throws Exception
 	 */
 	private function runForBackend($backendManager,
 								   string $dbTable,
@@ -191,6 +194,7 @@ class UpdateCalendarResourcesRoomsBackgroundJob extends TimedJob {
 	 * @param string $backendId
 	 * @param IResource|IRoom $remote
 	 * @return int Insert id
+	 * @throws Exception
 	 */
 	private function addToCache(string $table,
 								string $backendId,
@@ -216,6 +220,7 @@ class UpdateCalendarResourcesRoomsBackgroundJob extends TimedJob {
 	 * @param string $foreignKey
 	 * @param int $foreignId
 	 * @param array $metadata
+	 * @throws Exception
 	 */
 	private function addMetadataToCache(string $table,
 										string $foreignKey,
@@ -238,6 +243,7 @@ class UpdateCalendarResourcesRoomsBackgroundJob extends TimedJob {
 	 *
 	 * @param string $table
 	 * @param int $id
+	 * @throws Exception
 	 */
 	private function deleteFromCache(string $table,
 									 int $id):void {
@@ -251,6 +257,7 @@ class UpdateCalendarResourcesRoomsBackgroundJob extends TimedJob {
 	 * @param string $table
 	 * @param string $foreignKey
 	 * @param int $id
+	 * @throws Exception
 	 */
 	private function deleteMetadataFromCache(string $table,
 											 string $foreignKey,
@@ -267,6 +274,7 @@ class UpdateCalendarResourcesRoomsBackgroundJob extends TimedJob {
 	 * @param string $table
 	 * @param int $id
 	 * @param IResource|IRoom $remote
+	 * @throws Exception
 	 */
 	private function updateCache(string $table,
 								 int $id,
@@ -289,6 +297,7 @@ class UpdateCalendarResourcesRoomsBackgroundJob extends TimedJob {
 	 * @param int $id
 	 * @param array $metadata
 	 * @param array $cachedMetadata
+	 * @throws Exception
 	 */
 	private function updateMetadataCache(string $dbTable,
 										 string $foreignKey,
@@ -365,6 +374,7 @@ class UpdateCalendarResourcesRoomsBackgroundJob extends TimedJob {
 	 * @param string $foreignKey
 	 * @param int $id
 	 * @return array
+	 * @throws Exception
 	 */
 	private function getAllMetadataOfCache(string $table,
 										   string $foreignKey,
@@ -387,9 +397,10 @@ class UpdateCalendarResourcesRoomsBackgroundJob extends TimedJob {
 	/**
 	 * Gets all cached rooms / resources by backend
 	 *
-	 * @param $tableName
-	 * @param $backendId
+	 * @param string $tableName
+	 * @param string $backendId
 	 * @return array
+	 * @throws Exception
 	 */
 	private function getAllCachedByBackend(string $tableName,
 										   string $backendId):array {
@@ -399,14 +410,14 @@ class UpdateCalendarResourcesRoomsBackgroundJob extends TimedJob {
 			->where($query->expr()->eq('backend_id', $query->createNamedParameter($backendId)));
 		$stmt = $query->execute();
 
-		return array_map(function ($row): string {
+		return array_map(static function ($row): string {
 			return $row['resource_id'];
 		}, $stmt->fetchAll());
 	}
 
 	/**
-	 * @param $principalPrefix
-	 * @param $principalUri
+	 * @param string $principalPrefix
+	 * @param string $principalUri
 	 */
 	private function deleteCalendarDataForResource(string $principalPrefix,
 												   string $principalUri):void {
@@ -423,10 +434,11 @@ class UpdateCalendarResourcesRoomsBackgroundJob extends TimedJob {
 	}
 
 	/**
-	 * @param $table
-	 * @param $backendId
-	 * @param $resourceId
+	 * @param string $table
+	 * @param string $backendId
+	 * @param string $resourceId
 	 * @return int
+	 * @throws Exception
 	 */
 	private function getIdForBackendAndResource(string $table,
 												string $backendId,
