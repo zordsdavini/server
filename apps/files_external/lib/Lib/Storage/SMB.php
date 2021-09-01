@@ -141,11 +141,17 @@ class SMB extends Common implements INotifyStorage {
 
 	private function splitUser($user) {
 		if (strpos($user, '/')) {
-			return explode('/', $user, 2);
+			$split = explode('/', $user, 2);
 		} elseif (strpos($user, '\\')) {
-			return explode('\\', $user);
+			$split = explode('\\', $user);
 		} else {
 			return [null, $user];
+		}
+		if (count($split) < 2) {
+			$this->logger->error("Splitting domain of username failed, got " . json_encode($split) . " for user '$user'");
+			return [null, $user];
+		} else {
+			return $split;
 		}
 	}
 
