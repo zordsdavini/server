@@ -27,7 +27,7 @@ class Capabilities implements ICapability {
 	public function getCapabilities() {
 		return [
 			'dav' => [
-				'chunking' => '1.0',
+				'chunking' => '2.0'
 			]
 		];
 	}
