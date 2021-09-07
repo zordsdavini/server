@@ -137,8 +137,27 @@ class ChunkingV2Plugin extends ServerPlugin {
 		}
 
 		$targetFile = $this->getTargetFile($targetPath);
+		$tempTargetFile = $this->uploadFolder->getChild(self::TEMP_TARGET);
+		$cacheEntry = $storage->getCache()->get($tempTargetFile->getInternalPath());
+
+		[$destinationDir, $destinationName] = Uri\split($targetPath);
+		/** @var Directory $destinationParent */
+		$destinationParent = $this->server->tree->getNodeForPath($destinationDir);
+		$free = $storage->free_space($destinationParent->getInternalPath());
+		$additionalSize = (int)$request->getHeader('Content-Length');
+		$newSize = $cacheEntry->getSize() + $additionalSize;
+		if ($free >= 0 && ($cacheEntry->getSize() > $free || $newSize > $free)) {
+			// FIXME: check if needed but might be in responsibility of the clients
+			// $this->uploadFolder->delete();
+			throw new InsufficientStorage("Insufficient space in $targetPath");
+		}
+
 		$stream = $request->getBodyAsStream();
-		$storage->putChunkedFilePart($targetFile->getInternalPath(), $uploadId, (string)$partId, $stream, (int)$request->getHeader('Content-Length'));
+		$storage->putChunkedFilePart($targetFile->getInternalPath(), $uploadId, (string)$partId, $stream, $additionalSize);
+		// FIXME add return value to putChunkedFilePart to validate against size
+
+		$storage->getCache()->update($cacheEntry->getId(), ['size' => $cacheEntry->getSize() + $additionalSize]);
+		$storage->getPropagator()->propagateChange($tempTargetFile->getInternalPath(), time(), $additionalSize);
 
 		$response->setStatus(201);
 		return false;
@@ -155,6 +174,8 @@ class ChunkingV2Plugin extends ServerPlugin {
 		$properties = $this->server->getProperties(dirname($sourcePath) . '/', [ self::OBJECT_UPLOAD_CHUNKTOKEN, self::OBJECT_UPLOAD_TARGET ]);
 		$targetPath = $properties[self::OBJECT_UPLOAD_TARGET];
 		$uploadId = $properties[self::OBJECT_UPLOAD_CHUNKTOKEN];
+
+		// FIXME: check if $destination === TARGET
 		if (empty($targetPath) || empty($uploadId)) {
 			throw new PreconditionFailed('Missing metadata for chunked upload');
 		}
@@ -172,11 +193,14 @@ class ChunkingV2Plugin extends ServerPlugin {
 
 		$rootView = new View();
 		if ($storage->instanceOfStorage(ObjectStoreStorage::class)) {
-			$storage->processingCallback('writeChunkedFile', function() {
-				sleep(1);
-				\OC_Util::obEnd();
-				echo ' ';
-				flush();
+			$lastTick = time();
+			$storage->processingCallback('writeChunkedFile', function() use ($lastTick){
+				if ($lastTick < time()) {
+					\OC_Util::obEnd();
+					echo ' ';
+					flush();
+				}
+				$lastTick = time();
 			});
 		}
 
