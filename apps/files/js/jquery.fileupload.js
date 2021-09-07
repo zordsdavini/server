@@ -733,6 +733,11 @@
                 promise = dfd.promise(),
                 jqXHR,
                 upload;
+
+            // for s3 chunked upload
+			if (file.size/mcs > 10000) {
+				mcs = Math.ceil(file.size/10000)
+			}
             if (!(this._isXHRUpload(options) && slice && (ub || mcs < fs)) ||
                     options.data) {
                 return false;
