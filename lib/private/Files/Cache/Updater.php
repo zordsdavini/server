@@ -113,11 +113,21 @@ class Updater implements IUpdater {
 	 *
 	 * @param string $path
 	 * @param int $time
+	 * @param int $sizeDifference
 	 */
-	public function update($path, $time = null) {
+	public function update($path, $time = null, $sizeDifference = null) {
 		if (!$this->enabled or Scanner::isPartialFile($path)) {
 			return;
 		}
+
+		if (
+			$this->storage->instanceOfStorage(\OCP\Files\IHomeStorage::class) && (
+				(strpos($path, 'uploads/') === 0 && $this->cache->get($path)->getName() === '.target')
+				|| \OC::$server->getRequest()->getHeader('X-Chunking-Destination') !== ""
+			)) {
+			return;
+		}
+
 		if (is_null($time)) {
 			$time = time();
 		}
@@ -129,14 +139,30 @@ class Updater implements IUpdater {
 		) {
 			$sizeDifference = $data['size'] - $data['oldSize'];
 		} else {
-			// scanner didn't provide size info, fallback to full size calculation
-			$sizeDifference = 0;
-			if ($this->cache instanceof Cache) {
+			// scanner didn't provide size info, fallback to full size calculation if the difference was not already passed
+			// otherwise we can update through the propagator
+			if ($this->cache instanceof Cache && $sizeDifference === null) {
 				$this->cache->correctFolderSize($path, $data);
+				$sizeDifference = 0;
 			}
 		}
 		$this->correctParentStorageMtime($path);
-		$this->propagator->propagateChange($path, $time, $sizeDifference);
+		$this->propagator->propagateChange($path, $time, $sizeDifference ?? 0);
+	}
+
+	public function mkdir($path) {
+		if (!$this->enabled or Scanner::isPartialFile($path)) {
+			return;
+		}
+
+		$data = $this->cache->get($path);
+		// upload directories do not require propagation or parent storage mtime update
+		// FIXME: double check on the storage mtime but seems to be only for avoiding rescans
+		if (strpos($path, 'uploads/') === -1) {
+			// no need to update the size here since a new directory is empty by default
+			$this->correctParentStorageMtime($path);
+			$this->propagator->propagateChange($path, $data->getMTime());
+		}
 	}
 
 	/**
@@ -248,6 +274,9 @@ class Updater implements IUpdater {
 	 * @param string $internalPath
 	 */
 	private function correctParentStorageMtime($internalPath) {
+		if ($this->storage->instanceOfStorage(\OCP\Files\IHomeStorage::class) && ($internalPath === 'uploads' || strpos($internalPath, 'uploads/') === 0)) {
+			return;
+		}
 		$parentId = $this->cache->getParentId($internalPath);
 		$parent = dirname($internalPath);
 		if ($parentId != -1) {
