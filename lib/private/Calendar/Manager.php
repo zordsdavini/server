@@ -23,9 +23,11 @@
  */
 namespace OC\Calendar;
 
+use Closure;
 use OCP\Calendar\ICalendar;
+use OCP\Calendar\IManager;
 
-class Manager implements \OCP\Calendar\IManager {
+class Manager implements IManager {
 
 	/**
 	 * @var ICalendar[] holds all registered calendars
@@ -33,7 +35,7 @@ class Manager implements \OCP\Calendar\IManager {
 	private $calendars = [];
 
 	/**
-	 * @var \Closure[] to call to load/register calendar providers
+	 * @var Closure[] to call to load/register calendar providers
 	 */
 	private $calendarLoaders = [];
 
@@ -50,7 +52,7 @@ class Manager implements \OCP\Calendar\IManager {
 	 * @return array an array of events/journals/todos which are arrays of arrays of key-value-pairs
 	 * @since 13.0.0
 	 */
-	public function search($pattern, array $searchProperties = [], array $options = [], $limit = null, $offset = null) {
+	public function search(string $pattern, array $searchProperties = [], array $options = [], ?int $limit = null, ?int $offset = null): array {
 		$this->loadCalendars();
 		$result = [];
 		foreach ($this->calendars as $calendar) {
@@ -70,7 +72,7 @@ class Manager implements \OCP\Calendar\IManager {
 	 * @return bool true if enabled, false if not
 	 * @since 13.0.0
 	 */
-	public function isEnabled() {
+	public function isEnabled(): bool {
 		return !empty($this->calendars) || !empty($this->calendarLoaders);
 	}
 
@@ -81,7 +83,7 @@ class Manager implements \OCP\Calendar\IManager {
 	 * @return void
 	 * @since 13.0.0
 	 */
-	public function registerCalendar(ICalendar $calendar) {
+	public function registerCalendar(ICalendar $calendar): void {
 		$this->calendars[$calendar->getKey()] = $calendar;
 	}
 
@@ -92,7 +94,7 @@ class Manager implements \OCP\Calendar\IManager {
 	 * @return void
 	 * @since 13.0.0
 	 */
-	public function unregisterCalendar(ICalendar $calendar) {
+	public function unregisterCalendar(ICalendar $calendar): void {
 		unset($this->calendars[$calendar->getKey()]);
 	}
 
@@ -100,11 +102,11 @@ class Manager implements \OCP\Calendar\IManager {
 	 * In order to improve lazy loading a closure can be registered which will be called in case
 	 * calendars are actually requested
 	 *
-	 * @param \Closure $callable
+	 * @param Closure $callable
 	 * @return void
 	 * @since 13.0.0
 	 */
-	public function register(\Closure $callable) {
+	public function register(Closure $callable): void {
 		$this->calendarLoaders[] = $callable;
 	}
 
@@ -112,7 +114,7 @@ class Manager implements \OCP\Calendar\IManager {
 	 * @return ICalendar[]
 	 * @since 13.0.0
 	 */
-	public function getCalendars() {
+	public function getCalendars(): array {
 		$this->loadCalendars();
 
 		return array_values($this->calendars);
@@ -123,7 +125,7 @@ class Manager implements \OCP\Calendar\IManager {
 	 * @return void
 	 * @since 13.0.0
 	 */
-	public function clear() {
+	public function clear(): void {
 		$this->calendars = [];
 		$this->calendarLoaders = [];
 	}
@@ -131,7 +133,7 @@ class Manager implements \OCP\Calendar\IManager {
 	/**
 	 * loads all calendars
 	 */
-	private function loadCalendars() {
+	private function loadCalendars(): void {
 		foreach ($this->calendarLoaders as $callable) {
 			$callable($this);
 		}

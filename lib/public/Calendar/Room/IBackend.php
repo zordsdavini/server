@@ -54,11 +54,11 @@ interface IBackend {
 	 * get a room by it's id
 	 *
 	 * @param string $id
-	 * @throws BackendTemporarilyUnavailableException
 	 * @return IRoom|null
+	 * @throws BackendTemporarilyUnavailableException
 	 * @since 14.0.0
 	 */
-	public function getRoom($id);
+	public function getRoom(string $id): ?IRoom;
 
 	/**
 	 * Get unique identifier of the backend

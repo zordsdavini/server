@@ -88,10 +88,10 @@ class Manager implements \OCP\Calendar\Room\IManager {
 
 	/**
 	 * @param string $backendId
-	 * @throws \OCP\AppFramework\QueryException
 	 * @return IBackend|null
+	 *@throws \OCP\AppFramework\QueryException
 	 */
-	public function getBackend($backendId) {
+	public function getBackend(string $backendId) {
 		$backends = $this->getBackends();
 		foreach ($backends as $backend) {
 			if ($backend->getBackendIdentifier() === $backendId) {

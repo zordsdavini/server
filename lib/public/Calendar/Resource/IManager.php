@@ -36,7 +36,7 @@ interface IManager {
 	 * @return void
 	 * @since 14.0.0
 	 */
-	public function registerBackend(string $backendClass);
+	public function registerBackend(string $backendClass): void;
 
 	/**
 	 * Unregisters a resource backend
@@ -45,7 +45,7 @@ interface IManager {
 	 * @return void
 	 * @since 14.0.0
 	 */
-	public function unregisterBackend(string $backendClass);
+	public function unregisterBackend(string $backendClass): void;
 
 	/**
 	 * @return IBackend[]
@@ -58,12 +58,12 @@ interface IManager {
 	 * @return IBackend|null
 	 * @since 14.0.0
 	 */
-	public function getBackend($backendId);
+	public function getBackend(string $backendId): IBackend;
 
 	/**
 	 * removes all registered backend instances
 	 * @return void
 	 * @since 14.0.0
 	 */
-	public function clear();
+	public function clear(): void;
 }

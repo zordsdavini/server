@@ -23,6 +23,8 @@
  */
 namespace OCP\Calendar;
 
+use Closure;
+
 /**
  * This class provides access to the Nextcloud CalDAV backend.
  * Use this class exclusively if you want to access calendars.
@@ -68,7 +70,7 @@ interface IManager {
 	 * @return array an array of events/journals/todos which are arrays of arrays of key-value-pairs
 	 * @since 13.0.0
 	 */
-	public function search($pattern, array $searchProperties = [], array $options = [], $limit = null, $offset = null);
+	public function search(string $pattern, array $searchProperties = [], array $options = [], ?int $limit = null, ?int $offset = null): array;
 
 	/**
 	 * Check if calendars are available
@@ -76,7 +78,7 @@ interface IManager {
 	 * @return bool true if enabled, false if not
 	 * @since 13.0.0
 	 */
-	public function isEnabled();
+	public function isEnabled(): bool;
 
 	/**
 	 * Registers a calendar
@@ -85,7 +87,7 @@ interface IManager {
 	 * @return void
 	 * @since 13.0.0
 	 */
-	public function registerCalendar(ICalendar $calendar);
+	public function registerCalendar(ICalendar $calendar): void;
 
 	/**
 	 * Unregisters a calendar
@@ -94,28 +96,28 @@ interface IManager {
 	 * @return void
 	 * @since 13.0.0
 	 */
-	public function unregisterCalendar(ICalendar $calendar);
+	public function unregisterCalendar(ICalendar $calendar): void;
 
 	/**
 	 * In order to improve lazy loading a closure can be registered which will be called in case
 	 * calendars are actually requested
 	 *
-	 * @param \Closure $callable
+	 * @param Closure $callable
 	 * @return void
 	 * @since 13.0.0
 	 */
-	public function register(\Closure $callable);
+	public function register(Closure $callable): void;
 
 	/**
 	 * @return ICalendar[]
 	 * @since 13.0.0
 	 */
-	public function getCalendars();
+	public function getCalendars(): array;
 
 	/**
 	 * removes all registered calendar instances
 	 * @return void
 	 * @since 13.0.0
 	 */
-	public function clear();
+	public function clear(): void;
 }
