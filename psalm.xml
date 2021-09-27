@@ -8,7 +8,8 @@
     errorBaseline="build/psalm-baseline.xml"
 >
 	<plugins>
-		<plugin filename="build/psalm/AppFrameworkTainter.php" />
+		<plugin filename="build/psalm/AppFrameworkTainter.php"/>
+		<pluginClass class="Orklah\PsalmInsaneComparison\Plugin"/>
 	</plugins>
 	<projectFiles>
 		<directory name="apps/accessibility"/>
@@ -115,14 +116,14 @@
 				<referencedVariable name="$l"/>
 				<referencedVariable name="$theme"/>
 				<!-- false positive: https://github.com/nextcloud/server/blob/cb057829f72c70e819f456edfadbb29d72dba832/lib/private/Console/Application.php#L92 -->
-				<file name="core/register_command.php" />
+				<file name="core/register_command.php"/>
 			</errorLevel>
 		</UndefinedGlobalVariable>
 		<UndefinedDocblockClass>
 			<errorLevel type="suppress">
 				<!-- Helper classes for sharing API integration from other apps -->
-				<referencedClass name="OCA\Deck\Sharing\ShareAPIHelper" />
-				<referencedClass name="OCA\Talk\Share\Helper\DeletedShareAPIController" />
+				<referencedClass name="OCA\Deck\Sharing\ShareAPIHelper"/>
+				<referencedClass name="OCA\Talk\Share\Helper\DeletedShareAPIController"/>
 			</errorLevel>
 		</UndefinedDocblockClass>
 	</issueHandlers>
