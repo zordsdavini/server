@@ -91,8 +91,8 @@ class ConfigController extends OCSController {
 	 */
 	public function getConfig(): DataResponse {
 		return new DataResponse([
-			'highcontrast' => $this->config->getUserValue($this->userId, $this->appName, 'highcontrast', false),
-			'theme' => $this->config->getUserValue($this->userId, $this->appName, 'theme', false),
+			'highcontrast' => $this->config->getUserValue($this->userId, $this->appName, 'highcontrast', 'default'),
+			'theme' => $this->config->getUserValue($this->userId, $this->appName, 'theme', 'default'),
 			'font' => $this->config->getUserValue($this->userId, $this->appName, 'font', false)
 		]);
 	}

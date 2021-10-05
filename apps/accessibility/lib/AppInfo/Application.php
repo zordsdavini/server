@@ -29,12 +29,14 @@ declare(strict_types=1);
  */
 namespace OCA\Accessibility\AppInfo;
 
+use OC\AppFramework\Http\Request;
 use OCA\Accessibility\Service\JSDataService;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCP\IConfig;
+use OCP\IRequest;
 use OCP\IURLGenerator;
 use OCP\IUserSession;
 use function count;
@@ -60,25 +62,94 @@ class Application extends App implements IBootstrap {
 
 	public function injectCss(IUserSession $userSession,
 							   IConfig $config,
-							   IURLGenerator $urlGenerator) {
+							   IRequest $request,
+							   IURLGenerator $urlGenerator): void {
 		// Inject the fake css on all pages if enabled and user is logged
 		$loggedUser = $userSession->getUser();
 		if ($loggedUser !== null) {
-			$userValues = $config->getUserKeys($loggedUser->getUID(), self::APP_ID);
-			// we want to check if any theme or font is enabled.
-			if (count($userValues) > 0) {
-				$hash = $config->getUserValue($loggedUser->getUID(), self::APP_ID, 'icons-css', md5(implode('-', $userValues)));
-				$linkToCSS = $urlGenerator->linkToRoute(self::APP_ID . '.accessibility.getCss', ['md5' => $hash]);
-				\OCP\Util::addHeader('link', ['rel' => 'stylesheet', 'href' => $linkToCSS]);
-			}
-			\OCP\Util::addScript('accessibility', 'accessibilityoca');
+			$features = [
+				'theme' => $config->getUserValue($loggedUser->getUID(), self::APP_ID, 'theme', 'default'),
+				'highcontrast' => $config->getUserValue($loggedUser->getUID(), self::APP_ID, 'highcontrast', 'default'),
+				'font' => $config->getUserValue($loggedUser->getUID(), self::APP_ID, 'font', ''),
+			];
 		} else {
-			$userValues = ['dark'];
+			$features = [
+				'theme' => 'default',
+				'highcontrast' => 'default',
+				'font' => '',
+			];
+		}
 
-			$hash = md5(implode('-', $userValues));
-			$linkToCSS = $urlGenerator->linkToRoute(self::APP_ID . '.accessibility.getCss', ['md5' => $hash]);
-			\OCP\Util::addHeader('link', ['rel' => 'stylesheet', 'media' => '(prefers-color-scheme: dark)', 'href' => $linkToCSS]);
-			\OCP\Util::addScript('accessibility', 'accessibilityoca');
+		if (!$request->isUserAgent([Request::USER_AGENT_SAFARI])) {
+			// Only Safari understands "prefers-contrast" at the moment.
+			// The problem is other browsers return false "prefers-contrast" and "not(prefers-contrast)"
+			if ($features['highcontrast'] === 'default') {
+				$features['highcontrast'] = '';
+			}
+		}
+
+		$this->injectAccessibilityCss($urlGenerator, $features);
+//		\OCP\Util::addScript('accessibility', 'debug2');
+		\OCP\Util::addScript('accessibility', 'accessibilityoca');
+	}
+
+	protected function injectAccessibilityCss(IURLGenerator $urlGenerator, array $features): void {
+		$enabledFeatures = [];
+		$systemColorScheme = $features['theme'] === 'default';
+		$systemContrast = $features['highcontrast'] === 'default';
+		if ($features['theme'] === 'dark') {
+			$enabledFeatures[] = $features['theme'];
+		}
+		if ($features['highcontrast'] === 'highcontrast') {
+			$enabledFeatures[] = $features['highcontrast'];
+		}
+		if ($features['font'] !== '') {
+			$enabledFeatures[] = $features['font'];
+		}
+
+		// None
+		if (!$systemColorScheme && !$systemContrast) {
+			$this->addCssHeader($urlGenerator, '', implode($enabledFeatures));
+		}
+
+		// Dark mode
+		if ($systemColorScheme && !$systemContrast) {
+			$this->addCssHeader($urlGenerator, '(prefers-color-scheme: dark)', 'dark' . implode($enabledFeatures));
+			$this->addCssHeader($urlGenerator, '(prefers-color-scheme: light)', implode($enabledFeatures));
+		}
+
+		// High contrast
+		if (!$systemColorScheme && $systemContrast) {
+			$this->addCssHeader($urlGenerator, '(prefers-contrast: more)', 'highcontrast' . implode($enabledFeatures));
+			$this->addCssHeader($urlGenerator, '(prefers-contrast: less)', implode($enabledFeatures));
+		}
+
+		// Dark and high contrast
+		if ($systemColorScheme && $systemContrast) {
+			$this->addCssHeader($urlGenerator, '(prefers-contrast: more) and (prefers-color-scheme: dark)', 'darkhighcontrast' . implode($enabledFeatures));
+			$this->addCssHeader($urlGenerator, '(prefers-contrast: more) and (prefers-color-scheme: light)', 'highcontrast' . implode($enabledFeatures));
+			$this->addCssHeader($urlGenerator, '(prefers-contrast: less) and (prefers-color-scheme: dark)', 'dark' . implode($enabledFeatures));
+			$this->addCssHeader($urlGenerator, '(prefers-contrast: less) and (prefers-color-scheme: light)', implode($enabledFeatures));
+		}
+	}
+
+	protected function addCssHeader(IURLGenerator $urlGenerator, string $mediaQuery, string $features): void {
+		if ($features === '') {
+			return;
+		}
+
+		$linkToCss = $urlGenerator->linkToRoute(self::APP_ID . '.accessibility.getCss', ['md5' => $features]);
+		if ($mediaQuery === '') {
+			\OCP\Util::addHeader('link', [
+				'rel' => 'stylesheet',
+				'href' => $linkToCss,
+			]);
+		} else {
+			\OCP\Util::addHeader('link', [
+				'rel' => 'stylesheet',
+				'media' => $mediaQuery,
+				'href' => $linkToCss,
+			]);
 		}
 	}
 }

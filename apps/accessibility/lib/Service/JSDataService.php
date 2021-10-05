@@ -52,15 +52,14 @@ class JSDataService extends InitialStateProvider {
 		$user = $this->userSession->getUser();
 
 		if ($user === null) {
-			$theme = false;
-			$highcontrast = false;
+			$theme = 'default';
+			$highcontrast = 'default';
 		} else {
-			$theme = $this->config->getUserValue($user->getUID(), Application::APP_ID, 'theme', false);
-			$highcontrast = $this->config->getUserValue($user->getUID(), Application::APP_ID, 'highcontrast', false) !== false;
+			$theme = $this->config->getUserValue($user->getUID(), Application::APP_ID, 'theme', 'default');
+			$highcontrast = $this->config->getUserValue($user->getUID(), Application::APP_ID, 'highcontrast', 'default');
 		}
 
 		return [
-			'checkMedia' => $user === null,
 			'theme' => $theme,
 			'highcontrast' => $highcontrast,
 		];

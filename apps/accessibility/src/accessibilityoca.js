@@ -24,10 +24,28 @@
 import { loadState } from '@nextcloud/initial-state'
 
 OCA.Accessibility = loadState('accessibility', 'data')
-if (OCA.Accessibility.checkMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-	// Overwrite the theme for Guests based on the prefers-color-scheme
-	OCA.Accessibility.theme = 'dark'
+if (OCA.Accessibility.theme === 'default') {
+	if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+		console.error('Overwriting OCA.Accessibility.theme: ' + OCA.Accessibility.theme + ' with dark')
+		OCA.Accessibility.theme = 'dark'
+	} else {
+		console.error('Overwriting OCA.Accessibility.theme: ' + OCA.Accessibility.theme + ' with false')
+		OCA.Accessibility.theme = false
+	}
 }
+
+if (OCA.Accessibility.highcontrast === 'default') {
+	if (window.matchMedia('(prefers-contrast: more)').matches) {
+		console.error('Overwriting OCA.Accessibility.highcontrast: ' + OCA.Accessibility.theme + ' with true')
+		OCA.Accessibility.highcontrast = true
+	} else {
+		console.error('Overwriting OCA.Accessibility.highcontrast: ' + OCA.Accessibility.theme + ' with false')
+		OCA.Accessibility.highcontrast = false
+	}
+}
+
+console.error('OCA.Accessibility.theme: ' + OCA.Accessibility.theme)
+console.error('OCA.Accessibility.highcontrast: ' + OCA.Accessibility.highcontrast)
 
 if (OCA.Accessibility.theme !== false) {
 	document.body.classList.add(`theme--${OCA.Accessibility.theme}`)

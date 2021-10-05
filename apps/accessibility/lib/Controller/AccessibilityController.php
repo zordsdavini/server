@@ -105,18 +105,25 @@ class AccessibilityController extends Controller {
 	 * @NoCSRFRequired
 	 * @NoSameSiteCookieRequired
 	 *
+	 * @param string $md5
 	 * @return DataDisplayResponse
 	 */
-	public function getCss(): DataDisplayResponse {
+	public function getCss(string $md5): DataDisplayResponse {
 		$css = '';
 		$imports = '';
-		if ($this->userSession->isLoggedIn()) {
-			$userValues = $this->getUserValues();
-		} else {
-			$userValues = ['dark'];
+		$userValues = [];
+		if (strpos($md5, 'dark') !== false) {
+			$userValues[] = 'dark';
 		}
+		if (strpos($md5, 'highcontrast') !== false) {
+			$userValues[] = 'highcontrast';
+		}
+		if (strpos($md5, 'fontdyslexic') !== false) {
+			$userValues[] = 'fontdyslexic';
+		}
+		\OC::$server->getLogger()->error(implode($userValues), ['app' => 'nickz']);
 
-		foreach ($userValues as $key => $scssFile) {
+		foreach ($userValues as $scssFile) {
 			if ($scssFile !== false) {
 				if ($scssFile === 'highcontrast' && in_array('dark', $userValues)) {
 					$scssFile .= 'dark';
@@ -177,9 +184,9 @@ class AccessibilityController extends Controller {
 		$response->addHeader('Pragma', 'cache');
 
 		// store current cache hash
-		if ($this->userSession->isLoggedIn()) {
-			$this->config->setUserValue($this->userSession->getUser()->getUID(), $this->appName, 'icons-css', md5($css));
-		}
+//		if ($this->userSession->isLoggedIn()) {
+//			$this->config->setUserValue($this->userSession->getUser()->getUID(), $this->appName, 'icons-css', md5($css));
+//		}
 
 		return $response;
 	}
@@ -190,9 +197,9 @@ class AccessibilityController extends Controller {
 	 * @return array
 	 */
 	private function getUserValues(): array {
-		$userTheme = $this->config->getUserValue($this->userSession->getUser()->getUID(), $this->appName, 'theme', false);
+		$userTheme = $this->config->getUserValue($this->userSession->getUser()->getUID(), $this->appName, 'theme', 'default');
 		$userFont = $this->config->getUserValue($this->userSession->getUser()->getUID(), $this->appName, 'font', false);
-		$userHighContrast = $this->config->getUserValue($this->userSession->getUser()->getUID(), $this->appName, 'highcontrast', false);
+		$userHighContrast = $this->config->getUserValue($this->userSession->getUser()->getUID(), $this->appName, 'highcontrast', 'default');
 
 		return [$userTheme, $userHighContrast, $userFont];
 	}
