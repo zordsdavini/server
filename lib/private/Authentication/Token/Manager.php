@@ -265,6 +265,7 @@ class Manager implements IProvider {
 
 
 	public function markPasswordInvalid(IToken $token, string $tokenId) {
+		\OC::$server->getLogger()->logException(new \Exception('Mark password as invalid ' . $token->getId()));
 		$this->getProvider($token)->markPasswordInvalid($token, $tokenId);
 	}
 
