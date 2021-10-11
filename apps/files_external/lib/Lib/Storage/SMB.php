@@ -40,6 +40,7 @@ use Icewind\SMB\ACL;
 use Icewind\SMB\BasicAuth;
 use Icewind\SMB\Exception\AlreadyExistsException;
 use Icewind\SMB\Exception\ConnectException;
+use Icewind\SMB\Exception\ConnectionAbortedException;
 use Icewind\SMB\Exception\Exception;
 use Icewind\SMB\Exception\ForbiddenException;
 use Icewind\SMB\Exception\InvalidArgumentException;
@@ -186,7 +187,12 @@ class SMB extends Common implements INotifyStorage {
 		try {
 			$path = $this->buildPath($path);
 			if (!isset($this->statCache[$path])) {
-				$this->statCache[$path] = $this->share->stat($path);
+				try {
+					$this->statCache[$path] = $this->share->stat($path);
+				} catch (ConnectionAbortedException $e) {
+					$this->logger->logException($e, ['message' => 'Connection aborted while getting file info, retrying once']);
+					$this->statCache[$path] = $this->share->stat($path);
+				}
 			}
 			return $this->statCache[$path];
 		} catch (ConnectException $e) {
