@@ -1,9 +1,11 @@
 <?php
+
+declare(strict_types=1);
+
 /**
- * @copyright Copyright (c) 2016 Lukas Reschke <lukas@statuscode.ch>
+ * @copyright Copyright (c) 2021 Julius Härtl <jus@bitgrid.net>
  *
- * @author Christoph Wurst <christoph@winzerhof-wurst.at>
- * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Julius Härtl <jus@bitgrid.net>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -21,23 +23,24 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
-namespace OCA\DAV\Tests\unit;
+namespace OCP\Files\Storage;
 
-use OCA\DAV\Capabilities;
-use Test\TestCase;
+use OCP\Files\GenericFileException;
 
 /**
- * @package OCA\DAV\Tests\unit
+ * Interface that adds the ability to register processing callbacks for storage operation
+ *
+ * @since 23.0.0
  */
-class CapabilitiesTest extends TestCase {
-	public function testGetCapabilities() {
-		$capabilities = new Capabilities();
-		$expected = [
-			'dav' => [
-				'chunking' => '2.0',
-				'bulkupload' => '1.0',
-			],
-		];
-		$this->assertSame($expected, $capabilities->getCapabilities());
-	}
+interface IProcessingCallbackStorage extends IStorage {
+	/**
+	 * Register a callback for a processing storage operation
+	 *
+	 * @param string $method
+	 * @param callable $callback being called regularly during the storage operation
+	 * @return void
+	 * @throws GenericFileException
+	 * @since 23.0.0
+	 */
+	public function processingCallback(string $method, callable $callback): void;
 }

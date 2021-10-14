@@ -29,26 +29,31 @@ namespace OCP\Files\ObjectStore;
 use Aws\Result;
 
 /**
- * @since 22.0.0
+ * @since 23.0.0
  */
 interface IObjectStoreMultiPartUpload {
 	/**
-	 * @since 22.0.0
+	 * @since 23.0.0
 	 */
 	public function initiateMultipartUpload(string $urn): string;
 
 	/**
-	 * @since 22.0.0
+	 * @since 23.0.0
 	 */
 	public function uploadMultipartPart(string $urn, string $uploadId, int $partId, $stream, $size): Result;
 
 	/**
-	 * @since 22.0.0
+	 * @since 23.0.0
 	 */
 	public function completeMultipartUpload(string $urn, string $uploadId, array $result): int;
 
 	/**
-	 * @since 22.0.0
+	 * @since 23.0.0
 	 */
 	public function abortMultipartUpload(string $urn, string $uploadId): void;
+
+	/**
+	 * @since 23.0.0
+	 */
+	public function getMultipartUploads(string $urn, string $uploadId): array;
 }
