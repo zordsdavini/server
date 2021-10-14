@@ -2153,6 +2153,46 @@ trigger:
 
 ---
 kind: pipeline
+name: object-store-s3-upload
+
+steps:
+  - name: minio
+    image: ghcr.io/nextcloud/continuous-integration-minio:latest
+    detach: true
+    commands:
+      - mkdir /s3data
+      - minio server /s3data
+    environment:
+      MINIO_ROOT_USER: nextcloud
+      MINIO_ROOT_PASSWORD: nextcloud
+  - name: submodules
+    image: ghcr.io/nextcloud/continuous-integration-alpine-git:latest
+    commands:
+      - git submodule update --init
+  - name: object-store
+    image: ghcr.io/nextcloud/continuous-integration-php7.4:php7.4-3
+    environment:
+      OBJECT_STORE: s3
+      CODECOV_TOKEN:
+        from_secret: CODECOV_TOKEN
+    commands:
+      - ./tests/drone-wait-objectstore.sh
+      - bash tests/drone-run-integration-tests.sh || exit 0
+      - cp tests/preseed-config.php config/config.php
+      - ./occ maintenance:install --admin-pass=admin --data-dir=/dev/shm/nc_int
+      - cd build/integration
+      - ./run.sh features/webdav-related.feature
+
+trigger:
+  branch:
+    - master
+    - stable*
+  event:
+    - pull_request
+    - push
+
+---
+kind: pipeline
 name: object-store-azure
 
 steps:
