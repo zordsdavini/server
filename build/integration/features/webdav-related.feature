@@ -619,3 +619,29 @@ Feature: webdav-related
 		And Downloaded content should be "BBBBB"
 		And Downloading file "/C.txt"
 		And Downloaded content should be "CCCCC"
+
+  Scenario: Upload chunked file asc with new chunking v2
+    Given using new dav path
+    And user "user0" exists
+    And user "user0" creates a file locally with "3" x 5 MB chunks
+    And user "user0" creates a new chunking v2 upload with id "chunking-42" and destionation "/myChunkedFile.txt"
+    And user "user0" uploads new chunk v2 file "1" with "0" to id "chunking-42" and destionation "/myChunkedFile.txt"
+    And user "user0" uploads new chunk v2 file "2" with "1" to id "chunking-42" and destionation "/myChunkedFile.txt"
+    And user "user0" uploads new chunk v2 file "3" with "2" to id "chunking-42" and destionation "/myChunkedFile.txt"
+    And user "user0" moves new chunk v2 file with id "chunking-42" to "/myChunkedFile.txt"
+    When As an "user0"
+    And Downloading file "/myChunkedFile.txt"
+    Then Downloaded content should be the created file
+
+  Scenario: Upload chunked file desc with new chunking v2
+    Given using new dav path
+    And user "user0" exists
+    And user "user0" creates a file locally with "3" x 5 MB chunks
+    And user "user0" creates a new chunking v2 upload with id "chunking-42" and destionation "/myChunkedFile.txt"
+    And user "user0" uploads new chunk v2 file "3" with "2" to id "chunking-42" and destionation "/myChunkedFile.txt"
+    And user "user0" uploads new chunk v2 file "2" with "1" to id "chunking-42" and destionation "/myChunkedFile.txt"
+    And user "user0" uploads new chunk v2 file "1" with "0" to id "chunking-42" and destionation "/myChunkedFile.txt"
+    And user "user0" moves new chunk v2 file with id "chunking-42" to "/myChunkedFile.txt"
+    When As an "user0"
+    And Downloading file "/myChunkedFile.txt"
+    Then Downloaded content should be the created file

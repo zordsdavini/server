@@ -633,6 +633,40 @@ trait WebDav {
 		}
 	}
 
+
+	/**
+	 * @Given user :user creates a new chunking v2 upload with id :id and destionation :targetDestination
+	 */
+	public function userCreatesANewChunkingv2UploadWithIdAndDestination($user, $id, $targetDestination) {
+		$destination = '/uploads/' . $user . '/' . $id;
+		$this->makeDavRequest($user, 'MKCOL', $destination, [
+			'X-Chunking-Destination' => 'files/' . $user . '/' . $targetDestination,
+		], null, "uploads");
+	}
+
+	/**
+	 * @Given user :user uploads new chunk v2 file :num with :data to id :id and destionation :targetDestination
+	 */
+	public function userUploadsNewChunkv2FileOfWithToIdAndDestination($user, $num, $data, $id, $targetDestination) {
+		$data = \GuzzleHttp\Psr7\stream_for($data);
+		$destination = '/uploads/' . $user . '/' . $id . '/' . $num;
+		$this->makeDavRequest($user, 'PUT', $destination, [
+			'X-Chunking-Destination' => 'files/' . $user . '/' . $targetDestination,
+		], file_get_contents('/tmp/part-upload-' . $data), "uploads");
+	}
+
+	/**
+	 * @Given user :user moves new chunk v2 file with id :id to :dest
+	 */
+	public function userMovesNewChunkv2FileWithIdToMychunkedfileAndDestination($user, $id, $dest) {
+		$source = '/uploads/' . $user . '/' . $id . '/.file';
+		$destination = substr($this->baseUrl, 0, -4) . $this->getDavFilesPath($user) . $dest;
+		$this->makeDavRequest($user, 'MOVE', $source, [
+			'Destination' => $destination,
+			'X-Chunking-Destination' => 'files/' . $user . '/' . $dest,
+		], null, "uploads");
+	}
+
 	/**
 	 * @Given /^Downloading file "([^"]*)" as "([^"]*)"$/
 	 */
@@ -816,5 +850,29 @@ trait WebDav {
 	public function userChecksFileIdForPath($user, $path) {
 		$currentFileID = $this->getFileIdForPath($user, $path);
 		Assert::assertEquals($currentFileID, $this->storedFileID);
+	}
+
+	/**
+	 * @Given /^user "([^"]*)" creates a file locally with "([^"]*)" x 5 MB chunks$/
+	 */
+	public function userCreatesAFileLocallyWithChunks($arg1, $chunks) {
+		$this->parts = [];
+		for ($i=0;$i<(int)$chunks;$i++) {
+			$randomletter = substr(str_shuffle("abcdefghijklmnopqrstuvwxyz"), 0, 1);
+			file_put_contents('/tmp/part-upload-' . $i, str_repeat($randomletter, 5 * 1024 * 1024));
+			$this->parts[] = '/tmp/part-upload-' . $i;
+		}
+
+	}
+
+	/**
+	 * @Then /^Downloaded content should be the created file$/
+	 */
+	public function downloadedContentShouldBeTheCreatedFile() {
+		$content = '';
+		foreach ($this->parts as $part) {
+			$content .= file_get_contents($part);
+		}
+		Assert::assertEquals($content, (string)$this->response->getBody());
 	}
 }
