@@ -857,12 +857,11 @@ trait WebDav {
 	 */
 	public function userCreatesAFileLocallyWithChunks($arg1, $chunks) {
 		$this->parts = [];
-		for ($i=0;$i<(int)$chunks;$i++) {
+		for ($i = 0;$i < (int)$chunks;$i++) {
 			$randomletter = substr(str_shuffle("abcdefghijklmnopqrstuvwxyz"), 0, 1);
 			file_put_contents('/tmp/part-upload-' . $i, str_repeat($randomletter, 5 * 1024 * 1024));
 			$this->parts[] = '/tmp/part-upload-' . $i;
 		}
-
 	}
 
 	/**
