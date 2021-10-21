@@ -41,7 +41,7 @@
 				@update:email="onUpdateEmail"
 				@update:notification-email="onUpdateNotificationEmail" />
 
-			<VisibilityDropdown
+			<VisibilityDropdown v-if="globalProfileEnabled"
 				:param-id="accountPropertyId"
 				:display-id="accountProperty"
 				:visibility.sync="visibility" />
@@ -81,6 +81,7 @@ import { validateEmail } from '../../../utils/validate'
 
 const { emailMap: { additionalEmails, primaryEmail, notificationEmail } } = loadState('settings', 'personalInfoParameters', {})
 const { displayNameChangeSupported } = loadState('settings', 'accountParameters', {})
+const { globalProfileEnabled } = loadState('settings', 'personalInfoParameters', false)
 const { profileConfig: { email: { visibility } } } = loadState('settings', 'profileParameters', {})
 
 export default {
@@ -98,6 +99,7 @@ export default {
 			accountPropertyId: ACCOUNT_PROPERTY_ENUM.EMAIL,
 			additionalEmails,
 			displayNameChangeSupported,
+			globalProfileEnabled,
 			primaryEmail,
 			savePrimaryEmailScope,
 			notificationEmail,

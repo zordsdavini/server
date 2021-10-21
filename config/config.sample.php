@@ -1982,4 +1982,13 @@ $CONFIG = [
  * Defaults to ``true``
  */
 'files_no_background_scan' => false,
+
+/**
+ * Globally enable/disable profile for users
+ *
+ * When globally enabled, users may individually enable/disable their profiles
+ *
+ * Defaults to ``true``
+ */
+'profile.enabled' => true,
 ];

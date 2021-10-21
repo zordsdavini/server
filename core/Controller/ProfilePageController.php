@@ -26,24 +26,19 @@ declare(strict_types=1);
 
 namespace OC\Core\Controller;
 
-use OCP\Accounts\IAccountManager;
+use OC\Profile\ProfileManager;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IInitialState;
 use OCP\IRequest;
 use OCP\IUserManager;
 use OCP\IUserSession;
-use OC\Profile\ProfileManager;
 use OCP\UserStatus\IManager as IUserStatusManager;
 
 class ProfilePageController extends Controller {
-	use \OC\Profile\TProfileHelper;
 
 	/** @var IInitialState */
 	private $initialStateService;
-
-	/** @var IAccountManager */
-	private $accountManager;
 
 	/** @var ProfileManager */
 	private $profileManager;
@@ -61,7 +56,6 @@ class ProfilePageController extends Controller {
 		$appName,
 		IRequest $request,
 		IInitialState $initialStateService,
-		IAccountManager $accountManager,
 		ProfileManager $profileManager,
 		IUserManager $userManager,
 		IUserSession $userSession,
@@ -69,7 +63,6 @@ class ProfilePageController extends Controller {
 	) {
 		parent::__construct($appName, $request);
 		$this->initialStateService = $initialStateService;
-		$this->accountManager = $accountManager;
 		$this->profileManager = $profileManager;
 		$this->userManager = $userManager;
 		$this->userSession = $userSession;
@@ -94,9 +87,8 @@ class ProfilePageController extends Controller {
 
 		$visitingUser = $this->userSession->getUser();
 		$targetUser = $this->userManager->get($targetUserId);
-		$targetAccount = $this->accountManager->getAccount($targetUser);
 
-		if (!$this->isProfileEnabled($targetAccount)) {
+		if (!$this->profileManager->isProfileEnabled($targetUser)) {
 			return new TemplateResponse(
 				'core',
 				'404-profile',

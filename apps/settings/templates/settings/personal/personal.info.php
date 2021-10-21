@@ -72,7 +72,9 @@ script('settings', [
 				<span class="icon-checkmark hidden"></span>
 				<span class="icon-error hidden"></span>
 				<input type="hidden" id="avatarscope" value="<?php p($_['avatarScope']) ?>">
-				<div id="vue-profile-visibility-avatar"></div>
+				<?php if ($_['globalProfileEnabled']) : ?>
+					<div id="vue-profile-visibility-avatar"></div>
+				<?php endif; ?>
 			</form>
 		</div>
 		<div class="personal-settings-setting-box personal-settings-group-box section">
@@ -125,7 +127,9 @@ script('settings', [
 				<span class="icon-checkmark hidden"></span>
 				<span class="icon-error hidden"></span>
 				<input type="hidden" id="phonescope" value="<?php p($_['phoneScope']) ?>">
-				<div id="vue-profile-visibility-phone"></div>
+				<?php if ($_['globalProfileEnabled']) : ?>
+					<div id="vue-profile-visibility-phone"></div>
+				<?php endif; ?>
 			</form>
 		</div>
 		<div class="personal-settings-setting-box">
@@ -142,7 +146,9 @@ script('settings', [
 				<span class="icon-checkmark hidden"></span>
 				<span class="icon-error hidden"></span>
 				<input type="hidden" id="addressscope" value="<?php p($_['addressScope']) ?>">
-				<div id="vue-profile-visibility-address"></div>
+				<?php if ($_['globalProfileEnabled']) : ?>
+					<div id="vue-profile-visibility-address"></div>
+				<?php endif; ?>
 			</form>
 		</div>
 		<div class="personal-settings-setting-box">
@@ -187,7 +193,9 @@ script('settings', [
 				<span class="icon-checkmark hidden"></span>
 				<span class="icon-error hidden"></span>
 				<input type="hidden" id="websitescope" value="<?php p($_['websiteScope']) ?>">
-				<div id="vue-profile-visibility-website"></div>
+				<?php if ($_['globalProfileEnabled']) : ?>
+					<div id="vue-profile-visibility-website"></div>
+				<?php endif; ?>
 			</form>
 		</div>
 		<div class="personal-settings-setting-box">
@@ -232,30 +240,36 @@ script('settings', [
 				<span class="icon-checkmark hidden"></span>
 				<span class="icon-error hidden"></span>
 				<input type="hidden" id="twitterscope" value="<?php p($_['twitterScope']) ?>">
-				<div id="vue-profile-visibility-twitter"></div>
+				<?php if ($_['globalProfileEnabled']) : ?>
+					<div id="vue-profile-visibility-twitter"></div>
+				<?php endif; ?>
 			</form>
 		</div>
-		<div class="personal-settings-setting-box">
-			<div id="vue-organisation-section"></div>
-		</div>
-		<div class="personal-settings-setting-box">
-			<div id="vue-role-section"></div>
-		</div>
-		<div class="personal-settings-setting-box">
-			<div id="vue-headline-section"></div>
-		</div>
-		<div class="personal-settings-setting-box">
-			<div id="vue-biography-section"></div>
-		</div>
+		<?php if ($_['globalProfileEnabled']) : ?>
+			<div class="personal-settings-setting-box">
+				<div id="vue-organisation-section"></div>
+			</div>
+			<div class="personal-settings-setting-box">
+				<div id="vue-role-section"></div>
+			</div>
+			<div class="personal-settings-setting-box">
+				<div id="vue-headline-section"></div>
+			</div>
+			<div class="personal-settings-setting-box">
+				<div id="vue-biography-section"></div>
+			</div>
+		<?php endif; ?>
 	</div>
 
 	<div class="profile-settings-container">
-		<div class="personal-settings-setting-box">
-			<div id="vue-profile-section"></div>
-		</div>
-		<div class="personal-settings-setting-box">
-			<div id="vue-profile-visibility-section"></div>
-		</div>
+		<?php if ($_['globalProfileEnabled']) : ?>
+			<div class="personal-settings-setting-box">
+				<div id="vue-profile-section"></div>
+			</div>
+			<div class="personal-settings-setting-box">
+				<div id="vue-profile-visibility-section"></div>
+			</div>
+		<?php endif; ?>
 		<div class="personal-settings-setting-box personal-settings-language-box">
 			<div id="vue-language-section"></div>
 		</div>

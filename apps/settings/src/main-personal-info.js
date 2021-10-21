@@ -53,40 +53,46 @@ Vue.mixin({
 const DisplayNameView = Vue.extend(DisplayNameSection)
 const EmailView = Vue.extend(EmailSection)
 const LanguageView = Vue.extend(LanguageSection)
-const ProfileView = Vue.extend(ProfileSection)
-const OrganisationView = Vue.extend(OrganisationSection)
-const RoleView = Vue.extend(RoleSection)
-const HeadlineView = Vue.extend(HeadlineSection)
-const BiographyView = Vue.extend(BiographySection)
-const ProfileVisibilityView = Vue.extend(ProfileVisibilitySection)
-const VisibilityDropdownView = Vue.extend(VisibilityDropdown)
 
 new DisplayNameView().$mount('#vue-displayname-section')
 new EmailView().$mount('#vue-email-section')
 new LanguageView().$mount('#vue-language-section')
-new ProfileView().$mount('#vue-profile-section')
-new OrganisationView().$mount('#vue-organisation-section')
-new RoleView().$mount('#vue-role-section')
-new HeadlineView().$mount('#vue-headline-section')
-new BiographyView().$mount('#vue-biography-section')
-new ProfileVisibilityView().$mount('#vue-profile-visibility-section')
 
-// Profile visibility dropdowns
+// Profile sections
+const { globalProfileEnabled } = loadState('settings', 'personalInfoParameters', false)
 const { profileConfig } = loadState('settings', 'profileParameters', {})
-const visibilityDropdownParamIds = [
-	'avatar',
-	'phone',
-	'address',
-	'website',
-	'twitter',
-]
+if (globalProfileEnabled) {
+	const ProfileView = Vue.extend(ProfileSection)
+	const OrganisationView = Vue.extend(OrganisationSection)
+	const RoleView = Vue.extend(RoleSection)
+	const HeadlineView = Vue.extend(HeadlineSection)
+	const BiographyView = Vue.extend(BiographySection)
+	const ProfileVisibilityView = Vue.extend(ProfileVisibilitySection)
 
-for (const paramId of visibilityDropdownParamIds) {
-	const { displayId } = profileConfig[paramId]
-	new VisibilityDropdownView({
-		propsData: {
-			paramId,
-			displayId,
-		},
-	}).$mount(`#vue-profile-visibility-${paramId}`)
+	new ProfileView().$mount('#vue-profile-section')
+	new OrganisationView().$mount('#vue-organisation-section')
+	new RoleView().$mount('#vue-role-section')
+	new HeadlineView().$mount('#vue-headline-section')
+	new BiographyView().$mount('#vue-biography-section')
+	new ProfileVisibilityView().$mount('#vue-profile-visibility-section')
+
+	// Profile visibility dropdowns for non-vue sections
+	const VisibilityDropdownView = Vue.extend(VisibilityDropdown)
+	const visibilityDropdownParamIds = [
+		'avatar',
+		'phone',
+		'address',
+		'website',
+		'twitter',
+	]
+
+	for (const paramId of visibilityDropdownParamIds) {
+		const { displayId } = profileConfig[paramId]
+		new VisibilityDropdownView({
+			propsData: {
+				paramId,
+				displayId,
+			},
+		}).$mount(`#vue-profile-visibility-${paramId}`)
+	}
 }

@@ -34,7 +34,7 @@
 				:display-name.sync="primaryDisplayName.value"
 				:scope.sync="primaryDisplayName.scope" />
 
-			<VisibilityDropdown
+			<VisibilityDropdown v-if="globalProfileEnabled"
 				:param-id="accountPropertyId"
 				:display-id="accountProperty"
 				:visibility.sync="visibility" />
@@ -58,6 +58,7 @@ import { validateStringInput } from '../../../utils/validate'
 
 const { displayNameMap: { primaryDisplayName } } = loadState('settings', 'personalInfoParameters', {})
 const { displayNameChangeSupported } = loadState('settings', 'accountParameters', {})
+const { globalProfileEnabled } = loadState('settings', 'personalInfoParameters', false)
 const { profileConfig: { displayname: { visibility } } } = loadState('settings', 'profileParameters', {})
 
 export default {
@@ -74,6 +75,7 @@ export default {
 			accountProperty: ACCOUNT_PROPERTY_READABLE_ENUM.DISPLAYNAME,
 			accountPropertyId: ACCOUNT_PROPERTY_ENUM.DISPLAYNAME,
 			displayNameChangeSupported,
+			globalProfileEnabled,
 			primaryDisplayName,
 			visibility,
 		}
