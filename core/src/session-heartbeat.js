@@ -126,7 +126,7 @@ const registerAutoLogout = () => {
 		const timeout = Date.now() - config.session_lifetime * 1000
 		if (lastActive < timeout) {
 			console.info('Inactivity timout reached, logging out')
-			const logoutUrl = generateUrl('/logout') + '?requesttoken=' + encodeURIComponent(getRequestToken())
+			const logoutUrl = generateUrl('/logout') + '?requesttoken=' + encodeURIComponent(getRequestToken() + '&reason=auto_logout_js&lastActive=' + lastActive + '&session_lifetime=' + (config.session_lifetime * 1000))
 			window.location = logoutUrl
 		}
 	}, 1000)
