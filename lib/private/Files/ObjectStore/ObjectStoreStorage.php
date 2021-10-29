@@ -350,6 +350,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common implements IChunkedFil
 				$handle = fopen($tmpFile, $mode);
 				return CallbackWrapper::wrap($handle, null, null, function () use ($path, $tmpFile) {
 					$this->writeBack($tmpFile, $path);
+					$this->getUpdater()->update($path);
 				});
 			case 'a':
 			case 'ab':
@@ -367,6 +368,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common implements IChunkedFil
 				$handle = fopen($tmpFile, $mode);
 				return CallbackWrapper::wrap($handle, null, null, function () use ($path, $tmpFile) {
 					$this->writeBack($tmpFile, $path);
+					$this->getUpdater()->update($path);
 				});
 		}
 		return false;
