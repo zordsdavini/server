@@ -380,10 +380,12 @@ class Root extends Folder implements IRootFolder {
 			try {
 				$folder = $this->get('/' . $userId . '/files');
 			} catch (NotFoundException $e) {
+				\OC::$server->getLogger()->debug('Root: Could not find user folder for "' . $userId . '", exists ' . ($this->nodeExists('/' . $userId . '/files') ? 'true' : 'false'), ['app' => 'debug_create']);
 				if (!$this->nodeExists('/' . $userId)) {
 					$this->newFolder('/' . $userId);
 				}
 				$folder = $this->newFolder('/' . $userId . '/files');
+				\OC::$server->getLogger()->debug('Root: Created user folder for "' . $userId . '", exists ' . ($this->nodeExists('/' . $userId . '/files') ? 'true' : 'false'), ['app' => 'debug_create']);
 			}
 
 			$this->userFolderCache->set($userId, $folder);
