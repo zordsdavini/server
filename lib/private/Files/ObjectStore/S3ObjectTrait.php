@@ -114,11 +114,7 @@ trait S3ObjectTrait {
 			'part_size' => $this->uploadPartSize,
 			'params' => [
 				'ContentType' => $mimetype
-<<<<<<< HEAD
-			]
-=======
 			],
->>>>>>> Patch S3 filestorage provider, avoid fragments, #27877
 		]);
 
 		try {
