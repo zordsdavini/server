@@ -6,14 +6,13 @@ declare(strict_types=1);
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
  * @author Bjoern Schiessle <bjoern@schiessle.org>
- * @author castillo92 <37965565+castillo92@users.noreply.github.com>
  * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Daniel Calviño Sánchez <danxuliu@gmail.com>
  * @author Daniel Kesselberg <mail@danielkesselberg.de>
  * @author Gary Kim <gary@garykim.dev>
  * @author Georg Ehrke <oc.list@georgehrke.com>
  * @author Joas Schilling <coding@schilljs.com>
- * @author John Molakvoæ <skjnldsv@protonmail.com>
+ * @author John Molakvoæ (skjnldsv) <skjnldsv@protonmail.com>
  * @author Julius Härtl <jus@bitgrid.net>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Maxence Lange <maxence@artificial-owl.com>
@@ -23,7 +22,6 @@ declare(strict_types=1);
  * @author Richard Steinmetz <richard@steinmetz.cloud>
  * @author Robin Appelman <robin@icewind.nl>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
- * @author Valdnet <47037905+Valdnet@users.noreply.github.com>
  * @author Vincent Petry <vincent@nextcloud.com>
  * @author waleczny <michal@walczak.xyz>
  *
@@ -42,6 +40,7 @@ declare(strict_types=1);
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
+
 namespace OCA\Files_Sharing\Controller;
 
 use OCA\Files_Sharing\Exceptions\SharingRightsException;
@@ -220,6 +219,7 @@ class ShareAPIController extends OCSController {
 		}
 
 		$result['mimetype'] = $node->getMimetype();
+		$result['size'] = $node->getSize();
 		$result['has_preview'] = $this->previewManager->isAvailable($node);
 		$result['storage_id'] = $node->getStorage()->getId();
 		$result['storage'] = $node->getStorage()->getCache()->getNumericStorageId();
@@ -238,7 +238,7 @@ class ShareAPIController extends OCSController {
 			$result['share_with'] = $share->getSharedWith();
 			$result['share_with_displayname'] = $sharedWith !== null ? $sharedWith->getDisplayName() : $share->getSharedWith();
 			$result['share_with_displayname_unique'] = $sharedWith !== null ? (
-				 !empty($sharedWith->getSystemEMailAddress()) ? $sharedWith->getSystemEMailAddress() : $sharedWith->getUID()
+				 $sharedWith->getEMailAddress() !== '' ? $sharedWith->getEMailAddress() : $sharedWith->getUID()
 			) : $share->getSharedWith();
 			$result['status'] = [];
 
@@ -430,6 +430,7 @@ class ShareAPIController extends OCSController {
 	 * @param string $sendPasswordByTalk
 	 * @param string $expireDate
 	 * @param string $label
+	 * @param string $hideDownload
 	 *
 	 * @return DataResponse
 	 * @throws NotFoundException
@@ -449,7 +450,8 @@ class ShareAPIController extends OCSController {
 		string $password = '',
 		string $sendPasswordByTalk = null,
 		string $expireDate = '',
-		string $label = ''
+		string $label = '',
+		string $hideDownload = null
 	): DataResponse {
 		$share = $this->shareManager->newShare();
 
@@ -506,6 +508,15 @@ class ShareAPIController extends OCSController {
 			}
 			$share->setSharedWith($shareWith);
 			$share->setPermissions($permissions);
+
+			if ($expireDate !== '') {
+				try {
+					$expireDate = $this->parseDate($expireDate);
+					$share->setExpirationDate($expireDate);
+				} catch (\Exception $e) {
+					throw new OCSNotFoundException($this->l->t('Invalid date, date format must be YYYY-MM-DD'));
+				}
+			}
 		} elseif ($shareType === IShare::TYPE_GROUP) {
 			if (!$this->shareManager->allowGroupSharing()) {
 				throw new OCSNotFoundException($this->l->t('Group sharing is disabled by the administrator'));
@@ -517,6 +528,15 @@ class ShareAPIController extends OCSController {
 			}
 			$share->setSharedWith($shareWith);
 			$share->setPermissions($permissions);
+
+			if ($expireDate !== '') {
+				try {
+					$expireDate = $this->parseDate($expireDate);
+					$share->setExpirationDate($expireDate);
+				} catch (\Exception $e) {
+					throw new OCSNotFoundException($this->l->t('Invalid date, date format must be YYYY-MM-DD'));
+				}
+			}
 		} elseif ($shareType === IShare::TYPE_LINK
 			|| $shareType === IShare::TYPE_EMAIL) {
 
@@ -542,6 +562,13 @@ class ShareAPIController extends OCSController {
 					Constants::PERMISSION_DELETE;
 			} else {
 				$permissions = Constants::PERMISSION_READ;
+			}
+
+			// Update hide download state
+			if ($hideDownload === 'true') {
+				$share->setHideDownload(true);
+			} elseif ($hideDownload === 'false') {
+				$share->setHideDownload(false);
 			}
 
 			// TODO: It might make sense to have a dedicated setting to allow/deny converting link shares into federated ones
@@ -589,7 +616,7 @@ class ShareAPIController extends OCSController {
 			}
 
 			if ($shareWith === null) {
-				throw new OCSNotFoundException($this->l->t('Please specify a valid federated user ID'));
+				throw new OCSNotFoundException($this->l->t('Please specify a valid federated user id'));
 			}
 
 			$share->setSharedWith($shareWith);
@@ -608,7 +635,7 @@ class ShareAPIController extends OCSController {
 			}
 
 			if ($shareWith === null) {
-				throw new OCSNotFoundException($this->l->t('Please specify a valid federated group ID'));
+				throw new OCSNotFoundException($this->l->t('Please specify a valid federated group id'));
 			}
 
 			$share->setSharedWith($shareWith);
@@ -1104,7 +1131,7 @@ class ShareAPIController extends OCSController {
 					Constants::PERMISSION_READ | Constants::PERMISSION_UPDATE, // allow to edit single files
 				], true)
 			) {
-				throw new OCSBadRequestException($this->l->t('Cannot change permissions for public share links'));
+				throw new OCSBadRequestException($this->l->t('Can\'t change permissions for public share links'));
 			}
 
 			if (
