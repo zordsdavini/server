@@ -152,10 +152,11 @@ class AuthSettingsController extends Controller {
 		$tokenData['canRename'] = true;
 
 		$this->publishActivity(Provider::APP_TOKEN_CREATED, $deviceToken->getId(), ['name' => $deviceToken->getName()]);
+		$user = $this->userSession->getUser();
 
 		return new JSONResponse([
 			'token' => $token,
-			'loginName' => $loginName,
+			'loginName' => $user->getEMailAddress(),
 			'deviceToken' => $tokenData,
 		]);
 	}
