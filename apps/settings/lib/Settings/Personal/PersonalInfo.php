@@ -51,6 +51,9 @@ use OCP\L10N\IFactory;
 use OCP\Settings\ISettings;
 use OCP\Accounts\IAccountProperty;
 use OCP\AppFramework\Services\IInitialState;
+use OCP\IDBConnection;
+use OCP\DB\QueryBuilder\IQueryBuilder;
+use OC\Files\View;
 
 class PersonalInfo implements ISettings {
 
@@ -70,8 +73,11 @@ class PersonalInfo implements ISettings {
 	private $l;
 	/** @var IInitialState */
 	private $initialStateService;
+	/** @var IDBConnection */
+	private $db;
 
 	public function __construct(
+		IDBConnection $db,
 		IConfig $config,
 		IUserManager $userManager,
 		IGroupManager $groupManager,
@@ -81,6 +87,7 @@ class PersonalInfo implements ISettings {
 		IL10N $l,
 		IInitialState $initialStateService
 	) {
+		$this->db = $db;
 		$this->config = $config;
 		$this->userManager = $userManager;
 		$this->accountManager = $accountManager;
@@ -103,6 +110,13 @@ class PersonalInfo implements ISettings {
 		$uid = \OC_User::getUser();
 		$user = $this->userManager->get($uid);
 		$account = $this->accountManager->getAccount($user);
+		$imageMimetypes = '"image","image/jpg","image/jpeg","image/gif","image/png","image/svg+xml","image/webp"';
+		$videoMimetypes = '"video","video/3gpp","video/mp4", "video/mov", "video/avi", "video/flv"';
+
+		$imageStorageInBytes = $this->storageUtilization($uid, $imageMimetypes);
+		$videoStorageInBytes = $this->storageUtilization($uid, $videoMimetypes);
+
+		$photoVideoSizeInBytes =  $imageStorageInBytes + $videoStorageInBytes;
 
 		// make sure FS is setup before querying storage related stuff...
 		\OC_Util::setupFS($user->getUID());
@@ -117,6 +131,11 @@ class PersonalInfo implements ISettings {
 		$languageParameters = $this->getLanguages($user);
 		$localeParameters = $this->getLocales($user);
 		$messageParameters = $this->getMessageParameters($account);
+		$trashSizeinBytes = self::getTrashbinSize($uid);
+		$filesSizeInBytes = $storageInfo['used'] - ($photoVideoSizeInBytes + $trashSizeinBytes);
+		if($filesSizeInBytes < 0){
+			$filesSizeInBytes = 0;
+		}
 
 		$parameters = [
 			'total_space' => $totalSpace,
@@ -143,6 +162,12 @@ class PersonalInfo implements ISettings {
 			'twitterScope' => $account->getProperty(IAccountManager::PROPERTY_TWITTER)->getScope(),
 			'twitterVerification' => $account->getProperty(IAccountManager::PROPERTY_TWITTER)->getVerified(),
 			'groups' => $this->getGroups($user),
+			'trashSize' => \OC_Helper::humanFileSize($trashSizeinBytes),
+			'photoVideoSize' => \OC_Helper::humanFileSize($photoVideoSizeInBytes),
+			'filesSize' => \OC_Helper::humanFileSize($filesSizeInBytes),
+			'trashSizeInPer' => round(($trashSizeinBytes / $storageInfo['quota']) * 100) ,
+			'photoVideoSizeInPer' => round(($photoVideoSizeInBytes / $storageInfo['quota']) * 100),
+			'filesSizeInPer' => round(($filesSizeInBytes / $storageInfo['quota']) * 100) ,
 		] + $messageParameters + $languageParameters + $localeParameters;
 
 		$emails = $this->getEmails($account);
@@ -156,6 +181,35 @@ class PersonalInfo implements ISettings {
 		$this->initialStateService->provideInitialState('accountParameters', $accountParameters);
 
 		return new TemplateResponse('settings', 'settings/personal/personal.info', $parameters, '');
+	}
+
+	private static function getTrashbinSize($user) {
+		$view = new View('/' . $user);
+		$fileInfo = $view->getFileInfo('/files_trashbin');
+		return isset($fileInfo['size']) ? $fileInfo['size'] : 0;
+	}
+
+	private function storageUtilization($user= null, $filterMimetypes=null){
+		$details = null;
+
+		$rootFolder = \OC::$server->getRootFolder()->getUserFolder($user);
+		$storageId = $rootFolder->getStorage()->getCache()->getNumericStorageId();
+
+		$query = $this->db->getQueryBuilder();
+		$query->selectAlias($query->func()->sum('size'), 'f1')
+			->from('filecache', 'fc')
+			->innerJoin('fc', 'mimetypes', 'mt', $query->expr()->eq('fc.mimetype', 'mt.id'))
+			->where('mt.mimetype in('.$filterMimetypes.')')
+			->andWhere($query->expr()->neq('fc.size', $query->createPositionalParameter(-1)))
+			->andWhere('fc.path NOT Like "files_trashbin/files/%"')
+			->andWhere($query->expr()->eq('fc.storage', $query->createPositionalParameter($storageId)));
+
+		$result = $query->execute();
+		while ($row = $result->fetch()) {
+			$details = $row['f1'];
+		}
+		$result->closeCursor();
+		return $details;
 	}
 
 	/**
