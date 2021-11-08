@@ -44,6 +44,7 @@ OC.FileUpload = function(uploader, data) {
 OC.FileUpload.CONFLICT_MODE_DETECT = 0;
 OC.FileUpload.CONFLICT_MODE_OVERWRITE = 1;
 OC.FileUpload.CONFLICT_MODE_AUTORENAME = 2;
+OC.conflictsData = null;
 
 // IE11 polyfill
 // TODO: nuke out of orbit as well as this legacy code
@@ -258,15 +259,8 @@ OC.FileUpload.prototype = {
 			&& this.getFile().size > this.uploader.fileUploadParam.maxChunkSize
 		) {
 			data.isChunked = true;
-			var headers = {};
-			if (OC.getCapabilities().dav.chunking === '2.0') {
-				headers = {
-					'X-Chunking-Destination': this.getTargetDestination()
-				};
-			}
-
 			chunkFolderPromise = this.uploader.davClient.createDirectory(
-				'uploads/' + OC.getCurrentUser().uid + '/' + this.getId(), headers
+				'uploads/' + OC.getCurrentUser().uid + '/' + this.getId()
 			);
 			// TODO: if fails, it means same id already existed, need to retry
 		} else {
@@ -305,22 +299,15 @@ OC.FileUpload.prototype = {
 		}
 		if (size) {
 			headers['OC-Total-Length'] = size;
-		}
-		if (OC.getCapabilities().dav.chunking === '2.0') {
-			headers['X-Chunking-Destination'] = this.getTargetDestination();
+
 		}
 
 		return this.uploader.davClient.move(
 			'uploads/' + uid + '/' + this.getId() + '/.file',
-			this.getTargetDestination(),
+			'files/' + uid + '/' + OC.joinPaths(this.getFullPath(), this.getFileName()),
 			true,
 			headers
 		);
-	},
-
-	getTargetDestination: function() {
-		var uid = OC.getCurrentUser().uid;
-		return 'files/' + uid + '/' + OC.joinPaths(this.getFullPath(), this.getFileName());
 	},
 
 	_deleteChunkFolder: function() {
@@ -804,14 +791,16 @@ OC.Uploader.prototype = _.extend({
 			}
 			return true;
 		});
+		OC.conflictsData = conflicts;
 		if (conflicts.length) {
 			// wait for template loading
-			OC.dialogs.fileexists(null, null, null, this).done(function() {
-				_.each(conflicts, function(conflictData) {
-					OC.dialogs.fileexists(conflictData[1], conflictData[0], conflictData[1].getFile(), this);
+			OC.dialogs.fileexistsConflictPreDlg(null, null, null, this).done(function () {
+				_.each(conflicts, function (conflictData) {
+					OC.dialogs.fileexistsConflictPreDlg(conflictData[1], conflictData[0], conflictData[1].getFile(), this);
 				});
 			});
 		}
+
 
 		// upload non-conflicting files
 		// note: when reaching the server they might still meet conflicts
@@ -876,6 +865,50 @@ OC.Uploader.prototype = _.extend({
 		}
 
 		return ($tr.attr('data-mounttype') === 'shared-root' && $tr.attr('data-mime') !== 'httpd/unix-directory');
+	},
+
+	/** Custom Pre File conflict dialog*/
+
+	/**
+	 * Bypass to nexcloud default confluct box
+	 */
+	moreDetails:function() {
+		var conflicts = OC.conflictsData;
+		var self = this;
+		this.cancelUploads();
+		if (conflicts.length) {
+			// wait for template loading
+			OC.dialogs.fileexists(null, null, null, this).done(function () {
+				_.each(conflicts, function (conflictData) {
+					OC.dialogs.fileexists(conflictData[1], conflictData[0], conflictData[1].getFile(), this);
+				});
+			});
+		}
+	},
+
+	/**
+	 * callback for the conflicts dialog
+	 * calls onSkip, onReplace or onAutorename for each conflict
+	 * @param keepOriginal - boolean value. If true will keep original file
+	 * @param keepOriginal - boolean value. If true will repleace file
+	 */
+	onContinueConflictPreDlg:function(keepOriginal, keepReplacement) {
+		var self = this;
+		//iterate over all conflicts
+		jQuery.each(OC.conflictsData, function (i, conflict) {
+			var conflictData = conflict[1]
+			if (keepOriginal && keepReplacement) {
+				// when both selected -> autorename
+				self.onAutorename(conflictData);
+			} else if (keepReplacement) {
+				// when only replacement selected -> overwrite
+				self.onReplace(conflictData);
+			} else {
+				// when only original selected -> skip
+				// when none selected -> skip
+				self.onSkip(conflictData);
+			}
+		});
 	},
 
 	/**
@@ -1288,12 +1321,6 @@ OC.Uploader.prototype = _.extend({
 					var upload = self.getUpload(data);
 					var range = data.contentRange.split(' ')[1];
 					var chunkId = range.split('/')[0].split('-')[0];
-					if (OC.getCapabilities().dav.chunking === '2.0') {
-						// Calculate chunk index for usage with s3
-						chunkId = Math.ceil((data.chunkSize+Number(chunkId)) / upload.uploader.fileUploadParam.maxChunkSize);
-						data.headers['X-Chunking-Destination'] = upload.getTargetDestination();
-					}
-
 					data.url = OC.getRootPath() +
 						'/remote.php/dav/uploads' +
 						'/' + OC.getCurrentUser().uid +
