@@ -45,6 +45,8 @@ use Sabre\DAV\Xml\Response\MultiStatus;
 use Sabre\HTTP\RequestInterface;
 use Sabre\HTTP\ResponseInterface;
 use Sabre\Uri;
+use function Sabre\HTTP\decodePath;
+use function Sabre\Uri\normalize;
 
 class ChunkingV2Plugin extends ServerPlugin {
 
@@ -99,7 +101,7 @@ class ChunkingV2Plugin extends ServerPlugin {
 			return true;
 		}
 
-		$targetPath = $this->server->httpRequest->getHeader(self::DESTINATION_HEADER);
+		$targetPath = decodePath(normalize($this->server->httpRequest->getHeader(self::DESTINATION_HEADER)));
 		if (!$targetPath) {
 			return true;
 		}
