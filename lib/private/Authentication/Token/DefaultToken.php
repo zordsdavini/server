@@ -35,7 +35,6 @@ use OCP\AppFramework\Db\Entity;
  * @method void setLoginName(string $loginname)
  * @method string getToken()
  * @method void setType(int $type)
- * @method int getType()
  * @method void setRemember(int $remember)
  * @method void setLastActivity(int $lastactivity)
  * @method int getLastActivity()
@@ -186,6 +185,10 @@ class DefaultToken extends Entity implements INamedToken {
 
 	public function getRemember(): int {
 		return parent::getRemember();
+	}
+
+	public function getType(): int {
+		return parent::getType();
 	}
 
 	public function setToken(string $token) {
