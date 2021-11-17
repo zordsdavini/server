@@ -98,7 +98,16 @@ const initLiveTimestamps = () => {
 	// Update live timestamps every 30 seconds
 	setInterval(() => {
 		$('.live-relative-timestamp').each(function() {
-			$(this).text(OC.Util.relativeModifiedDate(parseInt($(this).attr('data-timestamp'), 10)))
+			const timestamp = parseInt($(this).attr('data-timestamp'), 10)
+			const diff = moment().diff(moment(timestamp))
+			let relativeTime = ''
+			if (diff >= 0 && diff < 45000) {
+				relativeTime = t('core', 'seconds ago')
+			} else {
+				relativeTime = moment(timestamp).fromNow()
+			}
+
+			$(this).text(relativeTime)
 		})
 	}, 30 * 1000)
 }
