@@ -30,7 +30,6 @@ use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\ILogger;
-use OCP\IUserManager;
 
 /**
  * Class ScanFiles is a background job used to run the file scanner over the user
