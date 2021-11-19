@@ -24,6 +24,9 @@ import logger from './logger'
 import { parseXML } from 'webdav/dist/node/tools/dav'
 import { getZoneString } from 'icalzone'
 import { v4 as uuidv4 } from 'uuid'
+import {
+	vavailabilityToSlots,
+} from '@nextcloud/calendar-availability-vue'
 
 export function getEmptySlots() {
 	return {
@@ -61,44 +64,8 @@ export async function findScheduleInboxAvailability() {
 		return undefined
 	}
 
-	const parsedIcal = ICAL.parse(availability)
-
-	const vcalendarComp = new ICAL.Component(parsedIcal)
-	const vavailabilityComp = vcalendarComp.getFirstSubcomponent('vavailability')
-
-	let timezoneId
-	const timezoneComp = vcalendarComp.getFirstSubcomponent('vtimezone')
-	if (timezoneComp) {
-		timezoneId = timezoneComp.getFirstProperty('tzid').getFirstValue()
-	}
-
-	const availableComps = vavailabilityComp.getAllSubcomponents('available')
-	// Combine all AVAILABLE blocks into a week of slots
-	const slots = getEmptySlots()
-	availableComps.forEach((availableComp) => {
-		const start = availableComp.getFirstProperty('dtstart').getFirstValue().toJSDate()
-		const end = availableComp.getFirstProperty('dtend').getFirstValue().toJSDate()
-		const rrule = availableComp.getFirstProperty('rrule')
-
-		if (rrule.getFirstValue().freq !== 'WEEKLY') {
-			logger.warn('rrule not supported', {
-				rrule: rrule.toICALString(),
-			})
-			return
-		}
-
-		rrule.getFirstValue().getComponent('BYDAY').forEach(day => {
-			slots[day].push({
-				start,
-				end,
-			})
-		})
-	})
-
-	return {
-		slots,
-		timezoneId,
-	}
+	console.info(vavailabilityToSlots)
+	return vavailabilityToSlots(availability)
 }
 
 export async function saveScheduleInboxAvailability(slots, timezoneId) {
