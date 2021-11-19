@@ -122,6 +122,8 @@ module.exports = []
 		plugins: [new VueLoaderPlugin(), new ESLintPlugin()],
 		resolve: {
 			alias: {
+				// Always load the main nc/vue, even for linked dependnecies
+				'@nextcloud/vue': './node_modules/@nextcloud/vue',
 				OC: path.resolve(__dirname, './core/src/OC'),
 				OCA: path.resolve(__dirname, './core/src/OCA'),
 				// make sure to use the handlebar runtime when importing
