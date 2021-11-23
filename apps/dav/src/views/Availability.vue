@@ -132,7 +132,10 @@ export default {
 			const { slots, timezoneId } = await findScheduleInboxAvailability()
 			if (slots) {
 				this.daysOfTheWeek.forEach(day => {
-					day.slots.push(...slots[day.id])
+					day.slots.push(...slots[day.id].map(slot => ({
+						start: new Date(slot.start * 1000),
+						end: new Date(slot.end * 1000),
+					})))
 				})
 			}
 			if (timezoneId) {
@@ -171,7 +174,10 @@ export default {
 
 				const slots = getEmptySlots()
 				this.daysOfTheWeek.forEach(day => {
-					day.slots.forEach(slot => slots[day.id].push(slot))
+					day.slots.forEach(slot => slots[day.id].push({
+						start: slot.start.getTime() / 1000,
+						end: slot.end.getTime() / 1000,
+					}))
 				})
 				await saveScheduleInboxAvailability(slots, this.timezone)
 
