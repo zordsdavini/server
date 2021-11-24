@@ -33,6 +33,7 @@ use OCP\Group\ISubAdmin;
 use OCP\IGroupManager;
 use OCP\INavigationManager;
 use OCP\IUserSession;
+use OCP\Settings\IIconSection;
 use OCP\Settings\IManager as ISettingsManager;
 use OCP\Settings\ISettings;
 
@@ -53,11 +54,13 @@ trait CommonSettingsTrait {
 	/** @var ISubAdmin */
 	private $subAdmin;
 
+	/** @var ?IIconSection */
+	private $activeSection = null;
+
 	/**
-	 * @param string $currentSection
-	 * @return array
+	 * @return array{forms: array{personal: array, admin: array}}
 	 */
-	private function getNavigationParameters($currentType, $currentSection) {
+	private function getNavigationParameters(string $currentType, string $currentSection): array {
 		$templateParameters = [
 			'personal' => $this->formatPersonalSections($currentType, $currentSection),
 			'admin' => []
@@ -73,9 +76,13 @@ trait CommonSettingsTrait {
 		];
 	}
 
+	/**
+	 * @param IIconSection[][] $sections
+	 * @psam-param 'admin'|'personal' $type
+	 * @return list<array{anchor: string, section-name: string, active: bool, icon: string}>
+	 */
 	protected function formatSections(array $sections, string $currentSection, string $type, string $currentType): array {
 		$templateParameters = [];
-		/** @var \OCP\Settings\IIconSection[] $prioritizedSections */
 		foreach ($sections as $prioritizedSections) {
 			foreach ($prioritizedSections as $section) {
 				if ($type === 'admin') {
@@ -92,6 +99,10 @@ trait CommonSettingsTrait {
 				$active = $section->getID() === $currentSection
 					&& $type === $currentType;
 
+				if ($active) {
+					$this->activeSection = $section;
+				}
+
 				$templateParameters[] = [
 					'anchor' => $section->getID(),
 					'section-name' => $section->getName(),
@@ -105,21 +116,17 @@ trait CommonSettingsTrait {
 
 	protected function formatPersonalSections(string $currentType, string $currentSections): array {
 		$sections = $this->settingsManager->getPersonalSections();
-		$templateParameters = $this->formatSections($sections, $currentSections, 'personal', $currentType);
-
-		return $templateParameters;
+		return $this->formatSections($sections, $currentSections, 'personal', $currentType);
 	}
 
 	protected function formatAdminSections(string $currentType, string $currentSections): array {
 		$sections = $this->settingsManager->getAdminSections();
-		$templateParameters = $this->formatSections($sections, $currentSections, 'admin', $currentType);
-
-		return $templateParameters;
+		return $this->formatSections($sections, $currentSections, 'admin', $currentType);
 	}
 
 	/**
 	 * @param array<int, list<\OCP\Settings\ISettings>> $settings
-	 * @return array
+	 * @return array{content: string}
 	 */
 	private function formatSettings(array $settings): array {
 		$html = '';
@@ -133,11 +140,16 @@ trait CommonSettingsTrait {
 		return ['content' => $html];
 	}
 
-	private function getIndexResponse($type, $section) {
+	private function getIndexResponse(string $type, string $section): TemplateResponse {
 		$this->navigationManager->setActiveEntry('settings');
 		$templateParams = [];
 		$templateParams = array_merge($templateParams, $this->getNavigationParameters($type, $section));
 		$templateParams = array_merge($templateParams, $this->getSettings($section));
+		if ($this->activeSection !== null) {
+			$templateParams = array_merge($templateParams, [
+				'pageTitle' => $this->activeSection->getName()
+			]);
+		}
 
 		return new TemplateResponse('settings', 'settings/frame', $templateParams);
 	}
