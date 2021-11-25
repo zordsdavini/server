@@ -404,7 +404,7 @@ class ProfileManager {
 			],
 			IAccountManager::PROPERTY_BIOGRAPHY => [
 				'appId' => self::CORE_APP_ID,
-				'displayId' => $this->l10nFactory->get(self::CORE_APP_ID)->t('About'),
+				'displayId' => $this->l10nFactory->get(self::CORE_APP_ID)->t('Biography'),
 			],
 			IAccountManager::PROPERTY_DISPLAYNAME => [
 				'appId' => self::CORE_APP_ID,

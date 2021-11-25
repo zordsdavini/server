@@ -142,7 +142,7 @@
 							fill-color="var(--color-text-maxcontrast)"
 							:size="60" />
 						<h3>{{ emptyProfileMessage }}</h3>
-						<p>{{ t('core', 'The headline and about sections will show up here') }}</p>
+						<p>{{ t('core', 'Your added info will show up here') }}</p>
 					</div>
 				</template>
 			</div>
@@ -258,8 +258,8 @@ export default {
 
 		emptyProfileMessage() {
 			return this.isCurrentUser
-				? t('core', 'You haven\'t added any info yet')
-				: t('core', '{user} hasn\'t added any info yet', { user: (this.displayname || this.userId) })
+				? t('core', 'You haven\'t added a headline or biography yet')
+				: t('core', '{user} hasn\'t added a headline or biography yet', { user: (this.displayname || this.userId) })
 		},
 	},
 
