@@ -852,6 +852,7 @@ class Manager implements IManager {
 							$this->urlGenerator->linkToRouteAbsolute('files_sharing.Accept.accept', ['shareId' => $share->getFullId()]),
 							$share->getSharedBy(),
 							$emailAddress,
+							$user->getDisplayName(),
 							$share->getExpirationDate()
 						);
 						$this->logger->debug('Sent share notification to ' . $emailAddress . ' for share with ID ' . $share->getId(), ['app' => 'share']);
@@ -886,6 +887,7 @@ class Manager implements IManager {
 											$link,
 											$initiator,
 											$shareWith,
+											$shareWithDisplayName,
 											\DateTime $expiration = null) {
 		$initiatorUser = $this->userManager->get($initiator);
 		$initiatorDisplayName = ($initiatorUser instanceof IUser) ? $initiatorUser->getDisplayName() : $initiator;
@@ -898,6 +900,7 @@ class Manager implements IManager {
 			'initiator' => $initiatorDisplayName,
 			'expiration' => $expiration,
 			'shareWith' => $shareWith,
+			'shareWithDisplayName' => $shareWithDisplayName
 		]);
 
 		$emailTemplate->setSubject($l->t('%1$s shared »%2$s« with you', [$initiatorDisplayName, $filename]));
