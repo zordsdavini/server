@@ -75,15 +75,8 @@
 					name="email"
 					type="email">
 				<div class="groups modal__item">
-					<!-- hidden input trick for vanilla html5 form validation -->
-					<input v-if="!settings.isAdmin"
-						id="newgroups"
-						:class="{'icon-loading-small': loading.groups}"
-						:required="!settings.isAdmin"
-						:value="newUser.groups"
-						tabindex="-1"
-						type="text">
-					<Multiselect v-model="newUser.groups"
+					<Multiselect ref="newusergroups"
+						v-model="newUser.groups"
 						:close-on-select="false"
 						:disabled="loading.groups||loading.all"
 						:multiple="true"
@@ -401,6 +394,20 @@ export default {
 				this.$refs.infiniteLoading.stateChanger.loaded()
 			}
 		},
+		'newUser.groups'() {
+			this.requireGroupsIfNeeded()
+		},
+		'showConfig.showNewUserForm'(val) {
+			if (!val) {
+				return
+			}
+
+			// Wait until next tick, as otherwise the element and its reference
+			// will not be initialized.
+			this.$nextTick(() => {
+				this.requireGroupsIfNeeded()
+			})
+		},
 	},
 
 	mounted() {
@@ -544,6 +551,26 @@ export default {
 			}
 			// fallback, empty selected group
 			this.newUser.groups = []
+		},
+
+		/**
+		 * Set the group input as "required" if needed.
+		 *
+		 * Sub admins can create users only in the groups they manage, so at
+		 * least one group needs to be selected for the form to be valid.
+		 *
+		 * The selected groups are shown in an auxiliary div, but not in the
+		 * input itself. Therefore, the "required" attribute needs to be set
+		 * when there are no selected groups, but it needs to be removed
+		 * otherwise, as the input will be empty and fail validation even if
+		 * some group is already selected.
+		 */
+		requireGroupsIfNeeded() {
+			if (this.settings.isAdmin || !this.$refs.newusergroups) {
+				return
+			}
+
+			this.$refs.newusergroups.$refs.VueMultiselect.$refs.search.required = !this.newUser.groups.length
 		},
 
 		/**
