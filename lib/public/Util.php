@@ -72,8 +72,11 @@ class Util {
 	 */
 	public const FATAL = 4;
 
-	/** \OCP\Share\IManager */
+	/** @var \OCP\Share\IManager */
 	private static $shareManager;
+
+	/** @var array */
+	private static $scripts = [];
 
 	/**
 	 * get the current installed version of Nextcloud
@@ -173,10 +176,71 @@ class Util {
 	 * add a javascript file
 	 * @param string $application
 	 * @param string $file
+	 * @param string $afterAppId
 	 * @since 4.0.0
 	 */
-	public static function addScript($application, $file = null) {
-		\OC_Util::addScript($application, $file);
+	public static function addScript($application, $file = null, $afterAppId = null) {
+		if (!empty($application)) {
+			$path = "$application/js/$file";
+		} else {
+			$path = "js/$file";
+		}
+
+		// Inject js translations if we load a script for
+		// a specific app that is not core, as those js files
+		// need separate handling
+		if ($application !== 'core' && $file !== null) {
+			self::addTranslations($application);
+		}
+
+		// init app array if it doesn't exists
+		if (!array_key_exists($afterAppId, self::$scripts)) {
+			self::$scripts[$afterAppId] = ['first' => [], 'last' => []];
+		}
+
+		/**
+		 * manage priorities if defined
+		 * we store the data like this, then flatten everything
+		[
+			'core' => [
+				'first' => [
+					'/core/js/main.js',
+				],
+				'last' => [
+					'/apps/viewer/js/viewer-main.js',
+				]
+			],
+			'viewer' => [
+				'first' => [
+					'/apps/viewer/js/viewer-public.js',
+				],
+				'last' => [
+					'/apps/files_pdfviewer/js/files_pdfviewer-main.js',
+				]
+			]
+		]
+		*/
+		if (!empty($afterAppId)) {
+			// init afterAppId app array if it doesn't exists
+			if (!array_key_exists($afterAppId, self::$scripts)) {
+				self::$scripts[$afterAppId] = ['first' => [], 'last' => []];
+			}
+			self::$scripts[$afterAppId]['last'][] = $path;
+		} else {
+			self::$scripts[$application]['first'][] = $path;
+		}
+	}
+
+	/**
+	 * Return the list of scripts injected to the page
+	 */
+	public static function getScripts(): array {
+		// merging first and last data set
+		$appScripts = array_map(fn($scriptsArray): array => array_merge(...array_values($scriptsArray)), self::$scripts);
+		// sort core first
+		$scripts = array_merge($appScripts['core'], ...array_values($appScripts));
+		// remove duplicates
+		return array_unique($scripts);
 	}
 
 	/**

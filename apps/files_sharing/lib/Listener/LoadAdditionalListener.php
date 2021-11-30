@@ -37,7 +37,9 @@ class LoadAdditionalListener implements IEventListener {
 			return;
 		}
 
-		Util::addScript(Application::APP_ID, 'dist/files_sharing');
+		// After files for the files list shared content
+		Util::addScript(Application::APP_ID, 'dist/files_sharing', 'files');
+		// After files for the breadcrumb share indicator
 		Util::addScript(Application::APP_ID, 'dist/additionalScripts');
 		Util::addStyle(Application::APP_ID, 'icons');
 	}
