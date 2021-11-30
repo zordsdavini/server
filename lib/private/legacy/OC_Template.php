@@ -101,24 +101,27 @@ class OC_Template extends \OC\Template\Base {
 	public static function initTemplateEngine($renderAs) {
 		if (self::$initTemplateEngineFirstRun) {
 
-			//apps that started before the template initialization can load their own scripts/styles
-			//so to make sure this scripts/styles here are loaded first we use OC_Util::addScript() with $prepend=true
-			//meaning the last script/style in this list will be loaded first
-			if (\OC::$server->getSystemConfig()->getValue('installed', false) && $renderAs !== TemplateResponse::RENDER_AS_ERROR && !\OCP\Util::needUpgrade()) {
+			// apps that started before the template initialization can load
+			// their own scripts/styles. When using addScript, core gets prioritized
+			// first unless specified to be loaded after another app Id. 
+			// That way we ensure those scripts are loaded first, then the apps.
+			if (\OC::$server->getSystemConfig()->getValue('installed', false)
+				&& $renderAs !== TemplateResponse::RENDER_AS_ERROR
+				&& !\OCP\Util::needUpgrade()) {
 				if (\OC::$server->getConfig()->getAppValue('core', 'backgroundjobs_mode', 'ajax') == 'ajax') {
-					OC_Util::addScript('backgroundjobs', null, true);
+					OC_Util::addScript('core', 'backgroundjobs');
 				}
 			}
-			OC_Util::addStyle('css-variables', null, true);
-			OC_Util::addStyle('server', null, true);
+			OC_Util::addStyle('core', 'css-variables');
+			OC_Util::addStyle('core', 'server');
 			OC_Util::addTranslations('core', null, true);
+			OC_Util::addScript('core', 'dist/main');
 
 			if (\OC::$server->getSystemConfig()->getValue('installed', false) && !\OCP\Util::needUpgrade()) {
-				OC_Util::addScript('merged-template-prepend', null, true);
-				OC_Util::addScript('dist/files_client', null, true);
-				OC_Util::addScript('dist/files_fileinfo', null, true);
+				OC_Util::addScript('core', 'merged-template-prepend');
+				OC_Util::addScript('core', 'dist/files_fileinfo');
+				OC_Util::addScript('core', 'dist/files_client');
 			}
-			OC_Util::addScript('core', 'dist/main', true);
 
 			if (\OC::$server->getRequest()->isUserAgent([\OC\AppFramework\Http\Request::USER_AGENT_IE])) {
 				// shim for the davclient.js library

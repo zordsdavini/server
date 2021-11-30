@@ -171,12 +171,14 @@ class Util {
 
 	/**
 	 * add a javascript file
+	 *
 	 * @param string $application
 	 * @param string $file
+	 * @param string $afterApp append the script after this app's scripts
 	 * @since 4.0.0
 	 */
-	public static function addScript($application, $file = null) {
-		\OC_Util::addScript($application, $file);
+	public static function addScript($application, $file = null, $afterApp = null) {
+		\OC_Util::addScript($application, $file, $afterApp);
 	}
 
 	/**

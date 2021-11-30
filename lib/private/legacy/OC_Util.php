@@ -582,17 +582,20 @@ class OC_Util {
 	 *
 	 * @param string $application application id
 	 * @param string|null $file filename
-	 * @param bool $prepend prepend the Script to the beginning of the list
+	 * @param string $afterAppId append after this app's scripts
 	 * @return void
 	 */
-	public static function addScript($application, $file = null, $prepend = false) {
+	public static function addScript($application, $file = null, $afterAppId = null) {
 		$path = OC_Util::generatePath($application, 'js', $file);
 
-		// core js files need separate handling
+		// Inject js translations if we load a script for
+		// a specific app that is not core, as those js files
+		// need separate handling
 		if ($application !== 'core' && $file !== null) {
 			self::addTranslations($application);
 		}
-		self::addExternalResource($application, $prepend, $path, "script");
+
+		self::addExternalResource($application, $path, "script", $afterAppId);
 	}
 
 	/**
@@ -605,7 +608,7 @@ class OC_Util {
 	 */
 	public static function addVendorScript($application, $file = null, $prepend = false) {
 		$path = OC_Util::generatePath($application, 'vendor', $file);
-		self::addExternalResource($application, $prepend, $path, "script");
+		self::addExternalResource($application, $path, "script", $prepend ?: 'core');
 	}
 
 	/**
@@ -624,7 +627,7 @@ class OC_Util {
 		} else {
 			$path = "l10n/$languageCode";
 		}
-		self::addExternalResource($application, $prepend, $path, "script");
+		self::addExternalResource($application, $path, "script", $prepend ? 'core' : null);
 	}
 
 	/**
@@ -632,12 +635,12 @@ class OC_Util {
 	 *
 	 * @param string $application application id
 	 * @param string|null $file filename
-	 * @param bool $prepend prepend the Style to the beginning of the list
+	 * @param string $afterAppId append after this app's scripts
 	 * @return void
 	 */
-	public static function addStyle($application, $file = null, $prepend = false) {
+	public static function addStyle($application, $file = null, $afterAppId = null) {
 		$path = OC_Util::generatePath($application, 'css', $file);
-		self::addExternalResource($application, $prepend, $path, "style");
+		self::addExternalResource($application, $path, "style", $afterAppId);
 	}
 
 	/**
@@ -645,41 +648,84 @@ class OC_Util {
 	 *
 	 * @param string $application application id
 	 * @param string|null $file filename
-	 * @param bool $prepend prepend the Style to the beginning of the list
 	 * @return void
 	 */
 	public static function addVendorStyle($application, $file = null, $prepend = false) {
 		$path = OC_Util::generatePath($application, 'vendor', $file);
-		self::addExternalResource($application, $prepend, $path, "style");
+		self::addExternalResource($application, $path, "style", $prepend ?: 'core');
 	}
 
 	/**
 	 * add an external resource css/js file
 	 *
 	 * @param string $application application id
-	 * @param bool $prepend prepend the file to the beginning of the list
 	 * @param string $path
 	 * @param string $type (script or style)
+	 * @param string $afterApp inject after specified app id
 	 * @return void
 	 */
-	private static function addExternalResource($application, $prepend, $path, $type = "script") {
-		if ($type === "style") {
-			if (!in_array($path, self::$styles)) {
-				if ($prepend === true) {
-					array_unshift(self::$styles, $path);
-				} else {
-					self::$styles[] = $path;
-				}
-			}
-		} elseif ($type === "script") {
-			if (!in_array($path, self::$scripts)) {
-				if ($prepend === true) {
-					array_unshift(self::$scripts, $path);
-				} else {
-					self::$scripts [] = $path;
-				}
-			}
+	private static function addExternalResource($application, $path, $type = "script", $afterAppId = null) {
+		$data = &self::$scripts;
+		if ($type === 'style') {
+			$data = &self::$styles;
 		}
+
+		if ($afterAppId === ':')
+			return;
+
+		// init app array if it doesn't exists
+		if (!array_key_exists($afterAppId, $data)) {
+			$data[$afterAppId] = ['first' => [], 'last' => []];
+		}
+
+		// manage priorities if defined
+		// we store the data like this, then flatten everything
+		// [
+		// 	'core' => [
+		// 		'first' => [
+		// 			'/core/js/main.js',
+		// 		],
+		// 		'last' => [
+		// 			'/apps/viewer/js/viewer-main.js',
+		// 		]
+		// 	],
+		// 	'viewer' => [
+		// 		'first' => [
+		// 			'/apps/viewer/js/viewer-public.js',
+		// 		],
+		// 		'last' => [
+		// 			'/apps/files_pdfviewer/js/files_pdfviewer-main.js',
+		// 		]
+		// 	]
+		// ]
+		if (!empty($afterAppId)) {
+			// init afterAppId app array if it doesn't exists
+			if (!array_key_exists($afterAppId, $data)) {
+				$data[$afterAppId] = ['first' => [], 'last' => []];
+			}
+			$data[$afterAppId]['last'][] = $path;
+		} else {
+			$data[$application]['first'][] = $path;
+		}
+	}
+
+	public static function getScripts() {
+		// merging first and last data set
+		$appScripts = array_map(fn($scriptsArray): array => array_merge(...array_values($scriptsArray)), self::$scripts);
+		// sort core first
+		$scripts = array_merge($appScripts['core'], ...array_values($appScripts));
+		// remove duplicates
+		return array_unique($scripts);
+
+	}
+
+	public static function getStyles() {
+		// merging first and last data set
+		$appStyles = array_map(fn($stylesArray): array => array_merge(...array_values($stylesArray)), self::$styles);
+		// sort core first
+		$styles = array_merge($appStyles['core'], ...array_values($appStyles));
+		// remove duplicates
+		return array_unique($styles);
 	}
 
 	/**

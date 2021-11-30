@@ -100,7 +100,7 @@ class TemplateLayout extends \OC_Template {
 
 			$this->initialState->provideInitialState('core', 'active-app', $this->navigationManager->getActiveEntry());
 			$this->initialState->provideInitialState('unified-search', 'limit-default', SearchQuery::LIMIT_DEFAULT);
-			Util::addScript('dist/unified-search', null, true);
+			Util::addScript('core', 'dist/unified-search', 'core');
 
 			// Add navigation entry
 			$this->assign('application', '');
@@ -213,7 +213,7 @@ class TemplateLayout extends \OC_Template {
 		}
 
 		// Add the js files
-		$jsFiles = self::findJavascriptFiles(\OC_Util::$scripts);
+		$jsFiles = self::findJavascriptFiles(\OC_Util::getScripts());
 		$this->assign('jsfiles', []);
 		if ($this->config->getSystemValue('installed', false) && $renderAs != TemplateResponse::RENDER_AS_ERROR) {
 			// this is on purpose outside of the if statement below so that the initial state is prefilled (done in the getConfig() call)
@@ -258,12 +258,12 @@ class TemplateLayout extends \OC_Template {
 			&& !preg_match('/^\/login/', $pathInfo)
 			&& $renderAs !== TemplateResponse::RENDER_AS_ERROR
 		) {
-			$cssFiles = self::findStylesheetFiles(\OC_Util::$styles);
+			$cssFiles = self::findStylesheetFiles(\OC_Util::getStyles());
 		} else {
 			// If we ignore the scss compiler,
 			// we need to load the guest css fallback
 			\OC_Util::addStyle('guest');
-			$cssFiles = self::findStylesheetFiles(\OC_Util::$styles, false);
+			$cssFiles = self::findStylesheetFiles(\OC_Util::getStyles(), false);
 		}
 
 		$this->assign('cssfiles', []);

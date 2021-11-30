@@ -30,9 +30,9 @@ use OCA\WorkflowEngine\AppInfo\Application;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\Template;
+use OCP\Util;
 use function class_exists;
 use function function_exists;
-use function script;
 
 class LoadAdditionalSettingsScriptsListener implements IEventListener {
 	public function handle(Event $event): void {
@@ -41,10 +41,7 @@ class LoadAdditionalSettingsScriptsListener implements IEventListener {
 			class_exists(Template::class, true);
 		}
 
-		script('core', 'dist/systemtags');
-
-		script(Application::APP_ID, [
-			'workflowengine',
-		]);
+		Util::addScript('core', 'dist/systemtags', 'files');
+		Util::addScript(Application::APP_ID, 'workflowengine', 'files');
 	}
 }

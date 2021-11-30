@@ -113,7 +113,7 @@ class Application extends App implements IBootstrap {
 		/**
 		 * Always add main sharing script
 		 */
-		Util::addScript(self::APP_ID, 'dist/main');
+		Util::addScript(self::APP_ID, 'dist/main', 'files');
 	}
 
 

@@ -37,8 +37,8 @@ class LoadAdditionalListener implements IEventListener {
 			return;
 		}
 
-		Util::addScript(Application::APP_ID, 'dist/files_sharing');
-		Util::addScript(Application::APP_ID, 'dist/additionalScripts');
+		Util::addScript(Application::APP_ID, 'dist/files_sharing', 'files');
+		Util::addScript(Application::APP_ID, 'dist/additionalScripts', 'files');
 		Util::addStyle(Application::APP_ID, 'icons');
 	}
 }
